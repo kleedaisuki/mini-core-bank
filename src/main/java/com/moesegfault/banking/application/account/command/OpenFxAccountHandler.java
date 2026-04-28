@@ -9,7 +9,6 @@ import com.moesegfault.banking.domain.account.CustomerId;
 import com.moesegfault.banking.domain.account.FxAccount;
 import com.moesegfault.banking.domain.account.FxAccountId;
 import com.moesegfault.banking.domain.account.SavingsAccount;
-import com.moesegfault.banking.domain.account.SavingsAccountId;
 import com.moesegfault.banking.domain.customer.Customer;
 import com.moesegfault.banking.domain.customer.CustomerRepository;
 import com.moesegfault.banking.domain.shared.DomainEventPublisher;

@@ -50,18 +50,12 @@ public record LedgerEntryResult(
         currencyCode = Objects.requireNonNull(currencyCode, "Currency code must not be null");
         entryDirection = Objects.requireNonNull(entryDirection, "Entry direction must not be null");
         amount = Objects.requireNonNull(amount, "Amount must not be null");
-        ledgerBalanceAfter = ledgerBalanceAfter;
-        availableBalanceAfter = availableBalanceAfter;
+        validateNullableMoneyCurrency(ledgerBalanceAfter, currencyCode, "Ledger balance-after");
+        validateNullableMoneyCurrency(availableBalanceAfter, currencyCode, "Available balance-after");
         entryType = Objects.requireNonNull(entryType, "Entry type must not be null");
         postedAt = Objects.requireNonNull(postedAt, "Posted-at must not be null");
         if (!amount.currencyCode().equals(currencyCode)) {
             throw new IllegalArgumentException("Entry amount currency must match currency code");
-        }
-        if (ledgerBalanceAfter != null && !ledgerBalanceAfter.currencyCode().equals(currencyCode)) {
-            throw new IllegalArgumentException("Ledger balance-after currency must match currency code");
-        }
-        if (availableBalanceAfter != null && !availableBalanceAfter.currencyCode().equals(currencyCode)) {
-            throw new IllegalArgumentException("Available balance-after currency must match currency code");
         }
     }
 
@@ -120,5 +114,23 @@ public record LedgerEntryResult(
         }
         final String normalized = rawValue.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    /**
+     * @brief 校验可空金额币种一致性（Validate Nullable Money Currency Consistency）；
+     *        Validate that nullable money value uses expected currency when present.
+     *
+     * @param money            可空金额（Nullable money value）。
+     * @param expectedCurrency 期望币种（Expected currency code）。
+     * @param label            字段标签（Field label）。
+     */
+    private static void validateNullableMoneyCurrency(
+            final Money money,
+            final CurrencyCode expectedCurrency,
+            final String label
+    ) {
+        if (money != null && !money.currencyCode().equals(expectedCurrency)) {
+            throw new IllegalArgumentException(label + " currency must match currency code");
+        }
     }
 }

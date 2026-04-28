@@ -36,7 +36,6 @@ public record PostEntriesCommand(
             throw new IllegalArgumentException("Posting requests must not be empty");
         }
         postingRequests = List.copyOf(postingRequests);
-        requestedPostedAt = requestedPostedAt;
     }
 
     /**
