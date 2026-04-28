@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.credit;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
 import com.moesegfault.banking.domain.shared.DomainEvent;
 import com.moesegfault.banking.domain.shared.Money;
 import java.time.Instant;

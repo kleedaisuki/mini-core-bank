@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.credit;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import com.moesegfault.banking.domain.shared.CurrencyCode;
 import com.moesegfault.banking.domain.shared.DateRange;

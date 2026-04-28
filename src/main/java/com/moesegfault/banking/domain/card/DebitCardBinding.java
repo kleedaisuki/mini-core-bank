@@ -1,7 +1,5 @@
 package com.moesegfault.banking.domain.card;
 
-import com.moesegfault.banking.domain.account.FxAccountId;
-import com.moesegfault.banking.domain.account.SavingsAccountId;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;

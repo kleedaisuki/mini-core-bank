@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.credit;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
 import com.moesegfault.banking.domain.shared.DateRange;
 import java.util.List;
 import java.util.Optional;

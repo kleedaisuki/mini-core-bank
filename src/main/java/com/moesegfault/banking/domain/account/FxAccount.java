@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.account;
 
-import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.util.Objects;
 

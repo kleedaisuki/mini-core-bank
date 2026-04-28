@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

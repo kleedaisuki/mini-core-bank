@@ -1,7 +1,5 @@
 package com.moesegfault.banking.domain.card;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
-import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.time.Instant;
 import java.util.Objects;

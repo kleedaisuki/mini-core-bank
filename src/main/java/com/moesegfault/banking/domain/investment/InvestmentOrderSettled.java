@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.investment;
 
-import com.moesegfault.banking.domain.account.InvestmentAccountId;
 import com.moesegfault.banking.domain.shared.DomainEvent;
 import java.time.Instant;
 import java.util.Objects;

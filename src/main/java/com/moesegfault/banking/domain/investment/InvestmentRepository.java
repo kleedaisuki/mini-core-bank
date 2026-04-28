@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.investment;
 
-import com.moesegfault.banking.domain.account.InvestmentAccountId;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;

@@ -1,7 +1,5 @@
 package com.moesegfault.banking.domain.account;
 
-import com.moesegfault.banking.domain.customer.Customer;
-import com.moesegfault.banking.domain.customer.CustomerPolicy;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.util.Objects;
 
@@ -21,12 +19,18 @@ public final class AccountPolicy {
 
     /**
      * @brief 校验客户是否具备开户资格（Ensure Customer Eligibility for Account Opening）；
-     *        Ensure customer is eligible for account opening.
+     *        Ensure customer status is eligible for account opening.
      *
-     * @param customer 客户实体（Customer entity）。
+     * @param customerStatus 客户状态（Customer status）。
      */
-    public static void ensureEligibleCustomer(final Customer customer) {
-        CustomerPolicy.ensureEligibleForAccountOpening(Objects.requireNonNull(customer, "Customer must not be null"));
+    public static void ensureEligibleCustomer(final CustomerStatus customerStatus) {
+        final CustomerStatus normalized = Objects.requireNonNull(
+                customerStatus,
+                "Customer status must not be null");
+        if (!normalized.canOpenAccount()) {
+            throw new BusinessRuleViolation(
+                    "Customer is not eligible for account opening when status is " + normalized);
+        }
     }
 
     /**

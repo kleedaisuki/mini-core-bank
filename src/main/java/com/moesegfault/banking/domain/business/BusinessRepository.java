@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.business;
 
-import com.moesegfault.banking.domain.customer.CustomerId;
 import java.util.List;
 import java.util.Optional;
 

@@ -1,9 +1,5 @@
 package com.moesegfault.banking.domain.card;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
-import com.moesegfault.banking.domain.customer.Customer;
-import com.moesegfault.banking.domain.customer.CustomerId;
-import com.moesegfault.banking.domain.customer.CustomerPolicy;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.util.Objects;
 
@@ -23,12 +19,18 @@ public final class CardIssuingPolicy {
 
     /**
      * @brief 校验客户是否具备发卡资格（Ensure Customer Eligibility for Card Issuance）；
-     *        Ensure customer is eligible for card issuance.
+     *        Ensure customer status is eligible for card issuance.
      *
-     * @param customer 客户实体（Customer entity）。
+     * @param customerStatus 客户状态（Customer status）。
      */
-    public static void ensureEligibleCustomer(final Customer customer) {
-        CustomerPolicy.ensureEligibleForCardIssuance(Objects.requireNonNull(customer, "Customer must not be null"));
+    public static void ensureEligibleCustomer(final CustomerStatus customerStatus) {
+        final CustomerStatus normalized = Objects.requireNonNull(
+                customerStatus,
+                "Customer status must not be null");
+        if (!normalized.canIssueCard()) {
+            throw new BusinessRuleViolation(
+                    "Customer is not eligible for card issuance when status is " + normalized);
+        }
     }
 
     /**

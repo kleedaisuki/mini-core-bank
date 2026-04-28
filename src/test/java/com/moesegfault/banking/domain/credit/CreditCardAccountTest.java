@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import com.moesegfault.banking.domain.shared.CurrencyCode;
 import com.moesegfault.banking.domain.shared.DateRange;

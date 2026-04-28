@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.investment;
 
-import com.moesegfault.banking.domain.account.InvestmentAccountId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import com.moesegfault.banking.domain.shared.CurrencyCode;
 import com.moesegfault.banking.domain.shared.Money;

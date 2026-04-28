@@ -1,6 +1,5 @@
 package com.moesegfault.banking.domain.card;
 
-import com.moesegfault.banking.domain.account.CreditCardAccountId;
 import java.util.List;
 import java.util.Optional;
 
