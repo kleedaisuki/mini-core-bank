@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.moesegfault.banking.domain.account.CreditCardAccountId;
+import com.moesegfault.banking.domain.account.FxAccountId;
+import com.moesegfault.banking.domain.account.SavingsAccountId;
 import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.shared.BusinessRuleViolation;
 import java.time.Instant;

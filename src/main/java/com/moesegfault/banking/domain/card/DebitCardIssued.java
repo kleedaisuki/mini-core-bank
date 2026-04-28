@@ -1,5 +1,7 @@
 package com.moesegfault.banking.domain.card;
 
+import com.moesegfault.banking.domain.account.FxAccountId;
+import com.moesegfault.banking.domain.account.SavingsAccountId;
 import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.shared.DomainEvent;
 import java.time.Instant;
