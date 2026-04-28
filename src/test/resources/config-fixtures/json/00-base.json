@@ -1,0 +1,10 @@
+{
+  "banking": {
+    "cli": {
+      "prompt": "base> "
+    }
+  },
+  "test": {
+    "levels": ["L1", "L2"]
+  }
+}

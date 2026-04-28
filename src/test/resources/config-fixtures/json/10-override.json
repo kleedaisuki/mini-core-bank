@@ -1,0 +1,10 @@
+{
+  "banking": {
+    "id": {
+      "strategy": "uuid"
+    },
+    "cli": {
+      "prompt": "override> "
+    }
+  }
+}
