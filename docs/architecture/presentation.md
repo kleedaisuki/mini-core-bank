@@ -131,9 +131,6 @@ src/main/java/com/moesegfault/banking/presentation/
 │       └── ListBusinessTransactionsCliHandler.java
 │           # 处理 business list 命令。
 
-├── presentation/
-# 展示层。负责和用户交互。当前提供 CLI，未来可以加 GUI / Web。
-
 ├── gui/
 │   # 图形界面入口。采用简化经典 MVC。
 │   # Model 是 GUI 页面状态，不是 domain model。
