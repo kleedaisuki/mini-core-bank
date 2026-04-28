@@ -2,11 +2,12 @@ package com.moesegfault.banking.presentation.gui.customer;
 
 import com.moesegfault.banking.application.customer.result.CustomerResult;
 import com.moesegfault.banking.presentation.gui.mvc.GuiView;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
 import com.moesegfault.banking.presentation.gui.view.TableView;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
  * @brief 客户列表页面视图（List Customers View），负责筛选表单、表格渲染与行选择事件；
  *        Customer-list page view handling filter form, table rendering, and row selection events.
  */
-public final class ListCustomersView implements GuiView<ListCustomersModel> {
+public final class ListCustomersView implements GuiView<ListCustomersModel>, ModelChangeListener {
 
     /**
      * @brief 表格列定义（Table Column Definitions）；
@@ -101,7 +102,12 @@ public final class ListCustomersView implements GuiView<ListCustomersModel> {
      */
     @Override
     public void bindModel(final ListCustomersModel model) {
-        this.model = Objects.requireNonNull(model, "model must not be null");
+        final ListCustomersModel normalizedModel = Objects.requireNonNull(model, "model must not be null");
+        if (this.model != null) {
+            this.model.removeChangeListener(this);
+        }
+        this.model = normalizedModel;
+        this.model.addChangeListener(this);
     }
 
     /**
@@ -109,6 +115,7 @@ public final class ListCustomersView implements GuiView<ListCustomersModel> {
      */
     @Override
     public void mount() {
+        requireModel();
     }
 
     /**
@@ -116,6 +123,9 @@ public final class ListCustomersView implements GuiView<ListCustomersModel> {
      */
     @Override
     public void unmount() {
+        if (model != null) {
+            model.removeChangeListener(this);
+        }
     }
 
     /**
@@ -128,6 +138,15 @@ public final class ListCustomersView implements GuiView<ListCustomersModel> {
         tableView.setRows(toRows(normalizedModel.customers()));
 
         renderedMessage = normalizedModel.errorMessage().orElse(null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onModelChanged(final ModelChangeEvent event) {
+        Objects.requireNonNull(event, "event must not be null");
+        render();
     }
 
     /**

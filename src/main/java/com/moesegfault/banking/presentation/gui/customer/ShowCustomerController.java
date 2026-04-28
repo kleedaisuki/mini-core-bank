@@ -129,7 +129,7 @@ public final class ShowCustomerController implements GuiController {
         final Object rawFormValues = event.attributes().get(CustomerGuiEventTypes.ATTR_FORM_VALUES);
         if (rawFormValues instanceof Map<?, ?> rawMap) {
             final Object rawCustomerId = rawMap.get(ShowCustomerModel.FIELD_CUSTOMER_ID);
-            return Objects.requireNonNullElse(String.valueOf(rawCustomerId), "").trim();
+            return rawCustomerId == null ? "" : String.valueOf(rawCustomerId).trim();
         }
         return "";
     }

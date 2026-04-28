@@ -138,9 +138,8 @@ public final class RegisterCustomerController implements GuiController {
             if (entry.getKey() == null) {
                 continue;
             }
-            normalizedValues.put(String.valueOf(entry.getKey()), Objects.requireNonNullElse(
-                    (String) entry.getValue(),
-                    ""));
+            final Object rawValue = entry.getValue();
+            normalizedValues.put(String.valueOf(entry.getKey()), rawValue == null ? "" : String.valueOf(rawValue));
         }
         return Map.copyOf(normalizedValues);
     }

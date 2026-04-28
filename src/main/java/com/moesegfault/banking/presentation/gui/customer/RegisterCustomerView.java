@@ -1,6 +1,8 @@
 package com.moesegfault.banking.presentation.gui.customer;
 
 import com.moesegfault.banking.presentation.gui.mvc.GuiView;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
 import java.util.Map;
@@ -11,7 +13,7 @@ import java.util.function.Consumer;
  * @brief 客户注册页面视图（Register Customer View），负责表单渲染与提交事件转发；
  *        Register-customer page view responsible for form rendering and submit-event forwarding.
  */
-public final class RegisterCustomerView implements GuiView<RegisterCustomerModel> {
+public final class RegisterCustomerView implements GuiView<RegisterCustomerModel>, ModelChangeListener {
 
     /**
      * @brief 注册表单视图（Register Form View）；
@@ -70,7 +72,12 @@ public final class RegisterCustomerView implements GuiView<RegisterCustomerModel
      */
     @Override
     public void bindModel(final RegisterCustomerModel model) {
-        this.model = Objects.requireNonNull(model, "model must not be null");
+        final RegisterCustomerModel normalizedModel = Objects.requireNonNull(model, "model must not be null");
+        if (this.model != null) {
+            this.model.removeChangeListener(this);
+        }
+        this.model = normalizedModel;
+        this.model.addChangeListener(this);
     }
 
     /**
@@ -78,6 +85,7 @@ public final class RegisterCustomerView implements GuiView<RegisterCustomerModel
      */
     @Override
     public void mount() {
+        requireModel();
     }
 
     /**
@@ -85,6 +93,9 @@ public final class RegisterCustomerView implements GuiView<RegisterCustomerModel
      */
     @Override
     public void unmount() {
+        if (model != null) {
+            model.removeChangeListener(this);
+        }
     }
 
     /**
@@ -102,6 +113,15 @@ public final class RegisterCustomerView implements GuiView<RegisterCustomerModel
         renderedFeedbackMessage = normalizedModel.errorMessage()
                 .or(() -> normalizedModel.successMessage())
                 .orElse(null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onModelChanged(final ModelChangeEvent event) {
+        Objects.requireNonNull(event, "event must not be null");
+        render();
     }
 
     /**

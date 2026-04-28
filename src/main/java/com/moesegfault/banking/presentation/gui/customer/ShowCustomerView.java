@@ -2,6 +2,8 @@ package com.moesegfault.banking.presentation.gui.customer;
 
 import com.moesegfault.banking.application.customer.result.CustomerResult;
 import com.moesegfault.banking.presentation.gui.mvc.GuiView;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
+import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
 import java.util.LinkedHashMap;
@@ -13,7 +15,7 @@ import java.util.function.Consumer;
  * @brief 客户详情页面视图（Show Customer View），负责查询表单与详情渲染；
  *        Show-customer view handling query form and rendered customer details.
  */
-public final class ShowCustomerView implements GuiView<ShowCustomerModel> {
+public final class ShowCustomerView implements GuiView<ShowCustomerModel>, ModelChangeListener {
 
     /**
      * @brief 查询表单（Query Form）；
@@ -78,7 +80,12 @@ public final class ShowCustomerView implements GuiView<ShowCustomerModel> {
      */
     @Override
     public void bindModel(final ShowCustomerModel model) {
-        this.model = Objects.requireNonNull(model, "model must not be null");
+        final ShowCustomerModel normalizedModel = Objects.requireNonNull(model, "model must not be null");
+        if (this.model != null) {
+            this.model.removeChangeListener(this);
+        }
+        this.model = normalizedModel;
+        this.model.addChangeListener(this);
     }
 
     /**
@@ -86,6 +93,7 @@ public final class ShowCustomerView implements GuiView<ShowCustomerModel> {
      */
     @Override
     public void mount() {
+        requireModel();
     }
 
     /**
@@ -93,6 +101,9 @@ public final class ShowCustomerView implements GuiView<ShowCustomerModel> {
      */
     @Override
     public void unmount() {
+        if (model != null) {
+            model.removeChangeListener(this);
+        }
     }
 
     /**
@@ -116,6 +127,15 @@ public final class ShowCustomerView implements GuiView<ShowCustomerModel> {
             return;
         }
         renderedMessage = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onModelChanged(final ModelChangeEvent event) {
+        Objects.requireNonNull(event, "event must not be null");
+        render();
     }
 
     /**
