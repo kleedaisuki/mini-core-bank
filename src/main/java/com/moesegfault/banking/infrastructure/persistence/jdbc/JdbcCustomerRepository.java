@@ -1,20 +1,18 @@
 package com.moesegfault.banking.infrastructure.persistence.jdbc;
 
-import com.moesegfault.banking.domain.customer.Address;
 import com.moesegfault.banking.domain.customer.Customer;
 import com.moesegfault.banking.domain.customer.CustomerId;
 import com.moesegfault.banking.domain.customer.CustomerRepository;
-import com.moesegfault.banking.domain.customer.CustomerStatus;
 import com.moesegfault.banking.domain.customer.IdentityDocument;
-import com.moesegfault.banking.domain.customer.IdentityDocumentType;
 import com.moesegfault.banking.domain.customer.PhoneNumber;
 import com.moesegfault.banking.domain.customer.TaxProfile;
+import com.moesegfault.banking.infrastructure.persistence.mapper.CustomerRowMapper;
+import com.moesegfault.banking.infrastructure.persistence.sql.CustomerSql;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 
 /**
  * @brief 客户仓储 JDBC 实现（JDBC Implementation of Customer Repository），对齐 `customer` 表结构；
@@ -23,81 +21,10 @@ import org.springframework.jdbc.core.RowMapper;
 public final class JdbcCustomerRepository implements CustomerRepository {
 
     /**
-     * @brief 客户 upsert SQL（Customer Upsert SQL）；
-     *        Customer upsert SQL.
-     */
-    private static final String UPSERT_SQL = """
-            INSERT INTO customer (
-                customer_id,
-                id_type,
-                id_number,
-                issuing_region,
-                mobile_phone,
-                residential_address,
-                mailing_address,
-                is_us_tax_resident,
-                crs_info,
-                customer_status,
-                created_at,
-                updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (customer_id) DO UPDATE SET
-                id_type = EXCLUDED.id_type,
-                id_number = EXCLUDED.id_number,
-                issuing_region = EXCLUDED.issuing_region,
-                mobile_phone = EXCLUDED.mobile_phone,
-                residential_address = EXCLUDED.residential_address,
-                mailing_address = EXCLUDED.mailing_address,
-                is_us_tax_resident = EXCLUDED.is_us_tax_resident,
-                crs_info = EXCLUDED.crs_info,
-                customer_status = EXCLUDED.customer_status,
-                updated_at = EXCLUDED.updated_at
-            """;
-
-    /**
-     * @brief 默认查询列（Default Select Columns）；
-     *        Default select columns.
-     */
-    private static final String SELECT_COLUMNS = """
-            SELECT
-                customer_id,
-                id_type,
-                id_number,
-                issuing_region,
-                mobile_phone,
-                residential_address,
-                mailing_address,
-                is_us_tax_resident,
-                crs_info,
-                customer_status,
-                created_at,
-                updated_at
-            FROM customer
-            """;
-
-    /**
      * @brief JDBC 模板（JDBC Template）；
      *        JDBC template.
      */
     private final JdbcTemplate jdbcTemplate;
-
-    /**
-     * @brief 客户行映射器（Customer Row Mapper）；
-     *        Customer row mapper.
-     */
-    private final RowMapper<Customer> customerRowMapper = (resultSet, rowNum) -> Customer.restore(
-            CustomerId.of(resultSet.getString("customer_id")),
-            IdentityDocument.of(
-                    IdentityDocumentType.fromDatabaseValue(resultSet.getString("id_type")),
-                    resultSet.getString("id_number"),
-                    resultSet.getString("issuing_region")),
-            PhoneNumber.of(resultSet.getString("mobile_phone")),
-            Address.of(resultSet.getString("residential_address")),
-            Address.of(resultSet.getString("mailing_address")),
-            TaxProfile.of(resultSet.getBoolean("is_us_tax_resident"), resultSet.getString("crs_info")),
-            CustomerStatus.valueOf(resultSet.getString("customer_status")),
-            JdbcRepositorySupport.getInstant(resultSet, "created_at"),
-            JdbcRepositorySupport.getInstant(resultSet, "updated_at"));
 
     /**
      * @brief 使用数据源构造仓储（Construct Repository with DataSource）；
@@ -128,7 +55,7 @@ public final class JdbcCustomerRepository implements CustomerRepository {
         final IdentityDocument identityDocument = normalized.identityDocument();
         final TaxProfile taxProfile = normalized.taxProfile();
         jdbcTemplate.update(
-                UPSERT_SQL,
+                CustomerSql.UPSERT,
                 normalized.customerId().value(),
                 identityDocument.idType().databaseValue(),
                 identityDocument.idNumber(),
@@ -151,8 +78,8 @@ public final class JdbcCustomerRepository implements CustomerRepository {
         final CustomerId normalized = Objects.requireNonNull(customerId, "customerId must not be null");
         return JdbcRepositorySupport.queryOptional(
                 jdbcTemplate,
-                SELECT_COLUMNS + " WHERE customer_id = ?",
-                customerRowMapper,
+                CustomerSql.SELECT_COLUMNS + " WHERE customer_id = ?",
+                CustomerRowMapper.CUSTOMER,
                 normalized.value());
     }
 
@@ -166,8 +93,8 @@ public final class JdbcCustomerRepository implements CustomerRepository {
                 "identityDocument must not be null");
         return JdbcRepositorySupport.queryOptional(
                 jdbcTemplate,
-                SELECT_COLUMNS + " WHERE id_type = ? AND id_number = ? AND issuing_region = ?",
-                customerRowMapper,
+                CustomerSql.SELECT_COLUMNS + " WHERE id_type = ? AND id_number = ? AND issuing_region = ?",
+                CustomerRowMapper.CUSTOMER,
                 normalized.idType().databaseValue(),
                 normalized.idNumber(),
                 normalized.issuingRegion());
@@ -182,13 +109,7 @@ public final class JdbcCustomerRepository implements CustomerRepository {
                 identityDocument,
                 "identityDocument must not be null");
         final Boolean exists = jdbcTemplate.queryForObject(
-                """
-                        SELECT EXISTS (
-                            SELECT 1
-                            FROM customer
-                            WHERE id_type = ? AND id_number = ? AND issuing_region = ?
-                        )
-                        """,
+                CustomerSql.EXISTS_BY_IDENTITY_DOCUMENT,
                 Boolean.class,
                 normalized.idType().databaseValue(),
                 normalized.idNumber(),
@@ -203,8 +124,8 @@ public final class JdbcCustomerRepository implements CustomerRepository {
     public List<Customer> findByMobilePhone(final PhoneNumber mobilePhone) {
         final PhoneNumber normalized = Objects.requireNonNull(mobilePhone, "mobilePhone must not be null");
         return jdbcTemplate.query(
-                SELECT_COLUMNS + " WHERE mobile_phone = ? ORDER BY created_at DESC",
-                customerRowMapper,
+                CustomerSql.SELECT_COLUMNS + " WHERE mobile_phone = ? ORDER BY created_at DESC",
+                CustomerRowMapper.CUSTOMER,
                 normalized.value());
     }
 
@@ -213,6 +134,8 @@ public final class JdbcCustomerRepository implements CustomerRepository {
      */
     @Override
     public List<Customer> findAll() {
-        return jdbcTemplate.query(SELECT_COLUMNS + " ORDER BY created_at DESC", customerRowMapper);
+        return jdbcTemplate.query(
+                CustomerSql.SELECT_COLUMNS + " ORDER BY created_at DESC",
+                CustomerRowMapper.CUSTOMER);
     }
 }

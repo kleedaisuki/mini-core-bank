@@ -1,23 +1,19 @@
 package com.moesegfault.banking.infrastructure.persistence.jdbc;
 
 import com.moesegfault.banking.domain.ledger.Balance;
-import com.moesegfault.banking.domain.ledger.EntryDirection;
-import com.moesegfault.banking.domain.ledger.EntryType;
 import com.moesegfault.banking.domain.ledger.LedgerEntry;
-import com.moesegfault.banking.domain.ledger.LedgerEntryId;
 import com.moesegfault.banking.domain.ledger.LedgerRepository;
 import com.moesegfault.banking.domain.ledger.PostingBatch;
 import com.moesegfault.banking.domain.ledger.PostingBatchId;
-import com.moesegfault.banking.domain.ledger.PostingStatus;
 import com.moesegfault.banking.domain.shared.CurrencyCode;
-import com.moesegfault.banking.domain.shared.Money;
-import java.math.BigDecimal;
+import com.moesegfault.banking.infrastructure.persistence.mapper.LedgerRowMapper;
+import com.moesegfault.banking.infrastructure.persistence.mapper.LedgerRowMapper.PostingBatchSnapshot;
+import com.moesegfault.banking.infrastructure.persistence.sql.LedgerSql;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 
 /**
  * @brief 账务仓储 JDBC 实现（JDBC Implementation of Ledger Repository），对齐 `posting_batch/account_balance/account_entry`；
@@ -26,116 +22,10 @@ import org.springframework.jdbc.core.RowMapper;
 public final class JdbcLedgerRepository implements LedgerRepository {
 
     /**
-     * @brief 余额 upsert SQL（Balance Upsert SQL）；
-     *        Balance upsert SQL.
-     */
-    private static final String UPSERT_BALANCE_SQL = """
-            INSERT INTO account_balance (
-                account_id,
-                currency_code,
-                ledger_balance,
-                available_balance,
-                updated_at
-            ) VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT (account_id, currency_code) DO UPDATE SET
-                ledger_balance = EXCLUDED.ledger_balance,
-                available_balance = EXCLUDED.available_balance,
-                updated_at = EXCLUDED.updated_at
-            """;
-
-    /**
-     * @brief 分录 upsert SQL（Ledger Entry Upsert SQL）；
-     *        Ledger-entry upsert SQL.
-     */
-    private static final String UPSERT_ENTRY_SQL = """
-            INSERT INTO account_entry (
-                entry_id,
-                transaction_id,
-                batch_id,
-                account_id,
-                currency_code,
-                entry_direction,
-                amount,
-                ledger_balance_after,
-                available_balance_after,
-                entry_type,
-                posted_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (entry_id) DO UPDATE SET
-                transaction_id = EXCLUDED.transaction_id,
-                batch_id = EXCLUDED.batch_id,
-                account_id = EXCLUDED.account_id,
-                currency_code = EXCLUDED.currency_code,
-                entry_direction = EXCLUDED.entry_direction,
-                amount = EXCLUDED.amount,
-                ledger_balance_after = EXCLUDED.ledger_balance_after,
-                available_balance_after = EXCLUDED.available_balance_after,
-                entry_type = EXCLUDED.entry_type,
-                posted_at = EXCLUDED.posted_at
-            """;
-
-    /**
-     * @brief 批次 upsert SQL（Posting Batch Upsert SQL）；
-     *        Posting-batch upsert SQL.
-     */
-    private static final String UPSERT_BATCH_SQL = """
-            INSERT INTO posting_batch (
-                batch_id,
-                transaction_id,
-                idempotency_key,
-                batch_status,
-                posted_at,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT (batch_id) DO UPDATE SET
-                transaction_id = EXCLUDED.transaction_id,
-                idempotency_key = EXCLUDED.idempotency_key,
-                batch_status = EXCLUDED.batch_status,
-                posted_at = EXCLUDED.posted_at,
-                created_at = EXCLUDED.created_at
-            """;
-
-    /**
      * @brief JDBC 模板（JDBC Template）；
      *        JDBC template.
      */
     private final JdbcTemplate jdbcTemplate;
-
-    /**
-     * @brief 余额映射器（Balance Row Mapper）；
-     *        Balance row mapper.
-     */
-    private final RowMapper<Balance> balanceMapper = (resultSet, rowNum) -> {
-        final CurrencyCode currencyCode = CurrencyCode.of(resultSet.getString("currency_code"));
-        return Balance.restore(
-                resultSet.getString("account_id"),
-                currencyCode,
-                Money.of(currencyCode, resultSet.getBigDecimal("ledger_balance")),
-                Money.of(currencyCode, resultSet.getBigDecimal("available_balance")),
-                JdbcRepositorySupport.getInstant(resultSet, "updated_at"));
-    };
-
-    /**
-     * @brief 分录映射器（Ledger Entry Row Mapper）；
-     *        Ledger entry row mapper.
-     */
-    private final RowMapper<LedgerEntry> ledgerEntryMapper = (resultSet, rowNum) -> {
-        final CurrencyCode currencyCode = CurrencyCode.of(resultSet.getString("currency_code"));
-        final BigDecimal ledgerBalanceAfter = resultSet.getBigDecimal("ledger_balance_after");
-        final BigDecimal availableBalanceAfter = resultSet.getBigDecimal("available_balance_after");
-        return LedgerEntry.restore(
-                LedgerEntryId.of(resultSet.getString("entry_id")),
-                resultSet.getString("transaction_id"),
-                nullablePostingBatchId(resultSet.getString("batch_id")),
-                resultSet.getString("account_id"),
-                currencyCode,
-                EntryDirection.valueOf(resultSet.getString("entry_direction")),
-                Money.of(currencyCode, resultSet.getBigDecimal("amount")),
-                ledgerBalanceAfter == null ? null : Money.of(currencyCode, ledgerBalanceAfter),
-                availableBalanceAfter == null ? null : Money.of(currencyCode, availableBalanceAfter),
-                EntryType.valueOf(resultSet.getString("entry_type")),
-                JdbcRepositorySupport.getInstant(resultSet, "posted_at"));
-    };
 
     /**
      * @brief 使用数据源构造仓储（Construct Repository with DataSource）；
@@ -164,7 +54,7 @@ public final class JdbcLedgerRepository implements LedgerRepository {
     public void saveBalance(final Balance balance) {
         final Balance normalized = Objects.requireNonNull(balance, "balance must not be null");
         jdbcTemplate.update(
-                UPSERT_BALANCE_SQL,
+                LedgerSql.UPSERT_BALANCE,
                 normalized.accountId(),
                 normalized.currencyCode().value(),
                 normalized.ledgerBalance().amount(),
@@ -179,7 +69,7 @@ public final class JdbcLedgerRepository implements LedgerRepository {
     public void saveEntry(final LedgerEntry ledgerEntry) {
         final LedgerEntry normalized = Objects.requireNonNull(ledgerEntry, "ledgerEntry must not be null");
         jdbcTemplate.update(
-                UPSERT_ENTRY_SQL,
+                LedgerSql.UPSERT_ENTRY,
                 normalized.entryId().value(),
                 normalized.transactionId(),
                 normalized.batchIdOrNull() == null ? null : normalized.batchIdOrNull().value(),
@@ -203,7 +93,7 @@ public final class JdbcLedgerRepository implements LedgerRepository {
             return;
         }
         jdbcTemplate.batchUpdate(
-                UPSERT_ENTRY_SQL,
+                LedgerSql.UPSERT_ENTRY,
                 normalized,
                 normalized.size(),
                 (preparedStatement, entry) -> {
@@ -232,7 +122,7 @@ public final class JdbcLedgerRepository implements LedgerRepository {
     public void savePostingBatch(final PostingBatch postingBatch) {
         final PostingBatch normalized = Objects.requireNonNull(postingBatch, "postingBatch must not be null");
         jdbcTemplate.update(
-                UPSERT_BATCH_SQL,
+                LedgerSql.UPSERT_BATCH,
                 normalized.batchId().value(),
                 normalized.transactionId(),
                 normalized.idempotencyKeyOrNull(),
@@ -277,8 +167,8 @@ public final class JdbcLedgerRepository implements LedgerRepository {
         final CurrencyCode normalizedCurrencyCode = Objects.requireNonNull(currencyCode, "currencyCode must not be null");
         return JdbcRepositorySupport.queryOptional(
                 jdbcTemplate,
-                "SELECT * FROM account_balance WHERE account_id = ? AND currency_code = ?",
-                balanceMapper,
+                LedgerSql.FIND_BALANCE,
+                LedgerRowMapper.BALANCE,
                 normalizedAccountId,
                 normalizedCurrencyCode.value());
     }
@@ -290,8 +180,8 @@ public final class JdbcLedgerRepository implements LedgerRepository {
     public List<Balance> listBalancesByAccountId(final String accountId) {
         final String normalized = normalizeRequiredString(accountId, "accountId");
         return jdbcTemplate.query(
-                "SELECT * FROM account_balance WHERE account_id = ? ORDER BY currency_code",
-                balanceMapper,
+                LedgerSql.LIST_BALANCES_BY_ACCOUNT_ID,
+                LedgerRowMapper.BALANCE,
                 normalized);
     }
 
@@ -302,8 +192,8 @@ public final class JdbcLedgerRepository implements LedgerRepository {
     public List<LedgerEntry> listEntriesByTransactionId(final String transactionId) {
         final String normalized = normalizeRequiredString(transactionId, "transactionId");
         return jdbcTemplate.query(
-                "SELECT * FROM account_entry WHERE transaction_id = ? ORDER BY posted_at ASC, entry_id ASC",
-                ledgerEntryMapper,
+                LedgerSql.LIST_ENTRIES_BY_TRANSACTION_ID,
+                LedgerRowMapper.LEDGER_ENTRY,
                 normalized);
     }
 
@@ -317,8 +207,8 @@ public final class JdbcLedgerRepository implements LedgerRepository {
             throw new IllegalArgumentException("limit must be positive");
         }
         return jdbcTemplate.query(
-                "SELECT * FROM account_entry WHERE account_id = ? ORDER BY posted_at DESC, entry_id DESC LIMIT ?",
-                ledgerEntryMapper,
+                LedgerSql.LIST_RECENT_ENTRIES_BY_ACCOUNT_ID,
+                LedgerRowMapper.LEDGER_ENTRY,
                 normalizedAccountId,
                 limit);
     }
@@ -335,32 +225,26 @@ public final class JdbcLedgerRepository implements LedgerRepository {
             final String whereClause,
             final Object argument
     ) {
-        final Optional<PostingBatchRecord> batchRecord = JdbcRepositorySupport.queryOptional(
+        final Optional<PostingBatchSnapshot> batchSnapshot = JdbcRepositorySupport.queryOptional(
                 jdbcTemplate,
-                "SELECT * FROM posting_batch WHERE " + whereClause,
-                (resultSet, rowNum) -> new PostingBatchRecord(
-                        PostingBatchId.of(resultSet.getString("batch_id")),
-                        resultSet.getString("transaction_id"),
-                        resultSet.getString("idempotency_key"),
-                        PostingStatus.valueOf(resultSet.getString("batch_status")),
-                        JdbcRepositorySupport.getInstant(resultSet, "posted_at"),
-                        JdbcRepositorySupport.getInstant(resultSet, "created_at")),
+                LedgerSql.FIND_POSTING_BATCH_PREFIX + whereClause,
+                LedgerRowMapper.POSTING_BATCH_SNAPSHOT,
                 argument);
-        if (batchRecord.isEmpty()) {
+        if (batchSnapshot.isEmpty()) {
             return Optional.empty();
         }
-        final PostingBatchRecord record = batchRecord.get();
+        final PostingBatchSnapshot snapshot = batchSnapshot.get();
         final List<LedgerEntry> entries = jdbcTemplate.query(
-                "SELECT * FROM account_entry WHERE batch_id = ? ORDER BY posted_at ASC, entry_id ASC",
-                ledgerEntryMapper,
-                record.batchId().value());
+                LedgerSql.LIST_ENTRIES_BY_BATCH_ID,
+                LedgerRowMapper.LEDGER_ENTRY,
+                snapshot.batchId().value());
         return Optional.of(PostingBatch.restore(
-                record.batchId(),
-                record.transactionId(),
-                record.idempotencyKey(),
-                record.batchStatus(),
-                record.postedAt(),
-                record.createdAt(),
+                snapshot.batchId(),
+                snapshot.transactionId(),
+                snapshot.idempotencyKey(),
+                snapshot.batchStatus(),
+                snapshot.postedAt(),
+                snapshot.createdAt(),
                 entries));
     }
 
@@ -381,39 +265,5 @@ public final class JdbcLedgerRepository implements LedgerRepository {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return normalized;
-    }
-
-    /**
-     * @brief 解析可空批次 ID（Parse Nullable Posting Batch ID）；
-     *        Parse nullable posting-batch identifier.
-     *
-     * @param rawValue 原始值（Raw value）。
-     * @return 批次 ID 或 null（Batch ID or null）。
-     */
-    private static PostingBatchId nullablePostingBatchId(final String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return null;
-        }
-        return PostingBatchId.of(rawValue);
-    }
-
-    /**
-     * @brief 批次记录载体（Posting Batch Record Carrier）；
-     *        Posting batch record carrier.
-     *
-     * @param batchId 批次 ID（Batch ID）。
-     * @param transactionId 交易 ID（Transaction ID）。
-     * @param idempotencyKey 幂等键（Idempotency key）。
-     * @param batchStatus 批次状态（Batch status）。
-     * @param postedAt 入账时间（Posted time）。
-     * @param createdAt 创建时间（Created time）。
-     */
-    private record PostingBatchRecord(
-            PostingBatchId batchId,
-            String transactionId,
-            String idempotencyKey,
-            PostingStatus batchStatus,
-            java.time.Instant postedAt,
-            java.time.Instant createdAt) {
     }
 }
