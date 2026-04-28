@@ -23,4 +23,15 @@ public interface GuiModule {
     default String moduleName() {
         return getClass().getSimpleName();
     }
+
+    /**
+     * @brief 组合多个子领域模块（Compose Subdomain Modules）；
+     *        Compose multiple subdomain modules into one module for bulk registration.
+     *
+     * @param subdomainModules 子领域模块数组（Subdomain module array）。
+     * @return 组合后的模块（Composed module）。
+     */
+    static GuiModule subdomains(final GuiModule... subdomainModules) {
+        return new GuiSubdomainModules(subdomainModules);
+    }
 }
