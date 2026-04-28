@@ -817,6 +817,8 @@ mini-core-bank/
     │   │           │
     │   │           │   ├── jdbc/
     │   │           │   │   # JDBC 版 Repository 实现。所有 SQL 先集中在这里。
+    │   │           │   │   ├── JdbcRepository.java
+    │   │           │   │   │   # JdbcRepository 的 interface。
     │   │           │   │
     │   │           │   │   ├── JdbcCustomerRepository.java
     │   │           │   │   │   # CustomerRepository 的 JDBC 实现。
@@ -841,6 +843,8 @@ mini-core-bank/
     │   │           │   │
     │   │           │   ├── mapper/
     │   │           │   │   # ResultSet 到领域对象的映射器。避免 Repository 方法太臃肿。
+    │   │           │   │   ├── RowMapper.java
+    │   │           │   │   │   # RowMapper interface。
     │   │           │   │
     │   │           │   │   ├── CustomerRowMapper.java
     │   │           │   │   │   # 把 customer 表查询结果映射为 Customer。
