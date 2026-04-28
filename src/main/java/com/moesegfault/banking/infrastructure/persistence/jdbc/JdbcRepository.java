@@ -8,19 +8,20 @@ import com.moesegfault.banking.domain.customer.CustomerRepository;
 import com.moesegfault.banking.domain.investment.InvestmentRepository;
 import com.moesegfault.banking.domain.ledger.LedgerRepository;
 import com.moesegfault.banking.infrastructure.persistence.Repository;
+import com.moesegfault.banking.infrastructure.persistence.transaction.DbTransactionManager;
+import com.moesegfault.banking.infrastructure.persistence.transaction.JdbcTransactionManager;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * @brief JDBC 仓储聚合门面（JDBC Repository Aggregate Facade），按读/写/事务能力暴露反射契约；
- *        JDBC repository aggregate facade exposing reflective contracts by read/write/transaction scopes.
+ * @brief JDBC 仓储聚合门面（JDBC Repository Aggregate Facade），按读/写能力暴露反射契约并管理写事务边界；
+ *        JDBC repository aggregate facade exposing reflective contracts by
+ *        read/write scopes and managing write-transaction boundaries.
  */
 public final class JdbcRepository implements Repository {
 
@@ -43,13 +44,14 @@ public final class JdbcRepository implements Repository {
     private final Map<Class<?>, Object> writeContracts;
 
     /**
-     * @brief 事务契约映射（Transaction Contract Map）；
-     *        Transaction contract map.
+     * @brief 写事务管理器（Write Transaction Manager）；
+     *        Write transaction manager.
      */
-    private final Map<Class<?>, Object> transactionContracts;
+    private final DbTransactionManager writeTransactionManager;
 
     /**
-     * @brief 使用数据源构造 JDBC 聚合仓储（Construct JDBC Aggregate Repository with DataSource）；
+     * @brief 使用数据源构造 JDBC 聚合仓储（Construct JDBC Aggregate Repository with
+     *        DataSource）；
      *        Construct JDBC aggregate repository with datasource.
      *
      * @param dataSource 数据源（Data source）。
@@ -66,8 +68,7 @@ public final class JdbcRepository implements Repository {
         final BusinessRepository businessRepository = new JdbcBusinessRepository(jdbcTemplate);
         final LedgerRepository ledgerRepository = new JdbcLedgerRepository(jdbcTemplate);
 
-        final PlatformTransactionManager transactionManager = new DataSourceTransactionManager(normalizedDataSource);
-        final TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        final JdbcTransactionManager jdbcTransactionManager = new JdbcTransactionManager(normalizedDataSource);
 
         this.readContracts = Map.of(
                 CustomerRepository.class, customerRepository,
@@ -87,23 +88,19 @@ public final class JdbcRepository implements Repository {
                 BusinessRepository.class, businessRepository,
                 LedgerRepository.class, ledgerRepository);
 
-        this.transactionContracts = Map.of(
-                PlatformTransactionManager.class, transactionManager,
-                TransactionTemplate.class, transactionTemplate,
-                DataSource.class, normalizedDataSource,
-                JdbcTemplate.class, jdbcTemplate);
+        this.writeTransactionManager = jdbcTransactionManager;
 
         this.descriptor = new RepositoryDescriptor(
                 "jdbc-postgresql",
                 new SemanticVersion(1, 0, 0),
                 Map.of(
                         CapabilityScope.READ, readContracts.keySet(),
-                        CapabilityScope.WRITE, writeContracts.keySet(),
-                        CapabilityScope.TRANSACTION, transactionContracts.keySet()),
+                        CapabilityScope.WRITE, writeContracts.keySet()),
                 Map.of(
                         "dialect", "postgresql",
                         "driver", "jdbc",
-                        "rw-mode", "single-source"));
+                        "rw-mode", "single-source",
+                        "tx-boundary", "repository-managed"));
     }
 
     /**
@@ -134,23 +131,22 @@ public final class JdbcRepository implements Repository {
      * {@inheritDoc}
      */
     @Override
-    public <T> Optional<T> transaction(final Class<T> contractType) {
-        return resolveFromMap(transactionContracts, contractType);
+    public <T> T writeInTransaction(final Supplier<T> action) {
+        return writeTransactionManager.execute(action);
     }
 
     /**
      * @brief 按契约类型从映射解析实现（Resolve Implementation from Contract Map）；
      *        Resolve implementation from contract map by contract type.
      *
-     * @param <T> 契约类型（Contract type）。
-     * @param contractMap 契约映射（Contract map）。
+     * @param <T>          契约类型（Contract type）。
+     * @param contractMap  契约映射（Contract map）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现可选值（Optional contract implementation）。
      */
     private static <T> Optional<T> resolveFromMap(
             final Map<Class<?>, Object> contractMap,
-            final Class<T> contractType
-    ) {
+            final Class<T> contractType) {
         Objects.requireNonNull(contractMap, "contractMap must not be null");
         Objects.requireNonNull(contractType, "contractType must not be null");
         final Object candidate = contractMap.get(contractType);

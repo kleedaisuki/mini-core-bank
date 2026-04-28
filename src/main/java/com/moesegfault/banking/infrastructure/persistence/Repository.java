@@ -4,13 +4,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * @brief 仓储门面基础接口（Repository Facade Base Interface），统一仓储能力协商与版本描述；
- *        Repository facade base interface that unifies capability negotiation and version metadata.
+ *        Repository facade base interface that unifies capability negotiation
+ *        and version metadata.
  *
  * @note 该接口位于基础设施层（Infrastructure Layer），不直接承载领域规则；
- *       This interface belongs to the infrastructure layer and does not carry domain rules directly.
+ *       This interface belongs to the infrastructure layer and does not carry
+ *       domain rules directly.
  */
 public interface Repository extends AutoCloseable {
 
@@ -26,7 +29,7 @@ public interface Repository extends AutoCloseable {
      * @brief 解析读路径契约（Resolve Read Contract）；
      *        Resolve read-path contract.
      *
-     * @param <T> contract 类型（Contract type）。
+     * @param <T>          contract 类型（Contract type）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现可选值（Optional contract implementation）。
      */
@@ -36,28 +39,43 @@ public interface Repository extends AutoCloseable {
      * @brief 解析写路径契约（Resolve Write Contract）；
      *        Resolve write-path contract.
      *
-     * @param <T> contract 类型（Contract type）。
+     * @param <T>          contract 类型（Contract type）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现可选值（Optional contract implementation）。
      */
     <T> Optional<T> writer(Class<T> contractType);
 
     /**
-     * @brief 解析事务契约（Resolve Transaction Contract）；
-     *        Resolve transaction contract.
+     * @brief 在仓储管理的写事务内执行（Execute Within Repository-managed Write Transaction）；
+     *        Execute action inside repository-managed write transaction.
      *
-     * @param <T> contract 类型（Contract type）。
-     * @param contractType 契约类型（Contract class type）。
-     * @return 契约实现可选值（Optional contract implementation）。
+     * @param <T>    返回类型（Result type）。
+     * @param action 事务动作（Transactional action）。
+     * @return 执行结果（Execution result）。
      */
-    <T> Optional<T> transaction(Class<T> contractType);
+    <T> T writeInTransaction(Supplier<T> action);
+
+    /**
+     * @brief 在仓储管理的写事务内执行无返回动作（Execute Side-effect Action in Write Transaction）；
+     *        Execute side-effect action inside repository-managed write
+     *        transaction.
+     *
+     * @param action 事务动作（Transactional action）。
+     */
+    default void writeInTransaction(final Runnable action) {
+        Objects.requireNonNull(action, "action must not be null");
+        writeInTransaction(() -> {
+            action.run();
+            return null;
+        });
+    }
 
     /**
      * @brief 按能力域解析契约（Resolve Contract by Capability Scope）；
      *        Resolve contract by capability scope.
      *
-     * @param <T> contract 类型（Contract type）。
-     * @param scope 能力域（Capability scope）。
+     * @param <T>          contract 类型（Contract type）。
+     * @param scope        能力域（Capability scope）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现可选值（Optional contract implementation）。
      */
@@ -67,7 +85,6 @@ public interface Repository extends AutoCloseable {
         return switch (scope) {
             case READ -> reader(contractType);
             case WRITE -> writer(contractType);
-            case TRANSACTION -> transaction(contractType);
         };
     }
 
@@ -75,17 +92,16 @@ public interface Repository extends AutoCloseable {
      * @brief 按默认策略解析契约（Resolve Contract by Default Policy）；
      *        Resolve contract by default policy.
      *
-     * @param <T> contract 类型（Contract type）。
+     * @param <T>          contract 类型（Contract type）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现可选值（Optional contract implementation）。
-     * @note 默认顺序：WRITE -> READ -> TRANSACTION；
-     *       Default precedence: WRITE -> READ -> TRANSACTION.
+     * @note 默认顺序：WRITE -> READ；
+     *       Default precedence: WRITE -> READ.
      */
     default <T> Optional<T> resolve(final Class<T> contractType) {
         Objects.requireNonNull(contractType, "contractType must not be null");
         return writer(contractType)
-                .or(() -> reader(contractType))
-                .or(() -> transaction(contractType));
+                .or(() -> reader(contractType));
     }
 
     /**
@@ -111,18 +127,18 @@ public interface Repository extends AutoCloseable {
     default boolean supports(final Class<?> contractType) {
         Objects.requireNonNull(contractType, "contractType must not be null");
         return supports(CapabilityScope.READ, contractType)
-                || supports(CapabilityScope.WRITE, contractType)
-                || supports(CapabilityScope.TRANSACTION, contractType);
+                || supports(CapabilityScope.WRITE, contractType);
     }
 
     /**
      * @brief 解析并强制获取指定仓储契约（Resolve and Require Contract）；
      *        Resolve and require the given repository contract.
      *
-     * @param <T> contract 类型（Contract type）。
+     * @param <T>          contract 类型（Contract type）。
      * @param contractType 契约类型（Contract class type）。
      * @return 契约实现（Contract implementation）。
-     * @throws IllegalStateException 当契约未被支持时抛出（Thrown when the contract is unsupported）。
+     * @throws IllegalStateException 当契约未被支持时抛出（Thrown when the contract is
+     *                               unsupported）。
      */
     default <T> T require(final Class<T> contractType) {
         Objects.requireNonNull(contractType, "contractType must not be null");
@@ -144,12 +160,14 @@ public interface Repository extends AutoCloseable {
 
     /**
      * @brief 仓储描述符（Repository Descriptor），用于跨版本能力识别；
-     *        Repository descriptor used for cross-version capability identification.
+     *        Repository descriptor used for cross-version capability
+     *        identification.
      *
      * @param implementation 实现名（Implementation name）。
-     * @param apiVersion API 版本（API version）。
-     * @param capabilities 按能力域组织的反射契约集合（Reflective contracts grouped by capability scope）。
-     * @param attributes 可扩展属性（Extensible attributes）。
+     * @param apiVersion     API 版本（API version）。
+     * @param capabilities   按能力域组织的反射契约集合（Reflective contracts grouped by
+     *                       capability scope）。
+     * @param attributes     可扩展属性（Extensible attributes）。
      */
     record RepositoryDescriptor(
             String implementation,
@@ -162,9 +180,10 @@ public interface Repository extends AutoCloseable {
          *        Construct and validate repository descriptor.
          *
          * @param implementation 实现名（Implementation name）。
-         * @param apiVersion API 版本（API version）。
-         * @param capabilities 按能力域组织的反射契约集合（Reflective contracts grouped by capability scope）。
-         * @param attributes 可扩展属性（Extensible attributes）。
+         * @param apiVersion     API 版本（API version）。
+         * @param capabilities   按能力域组织的反射契约集合（Reflective contracts grouped by
+         *                       capability scope）。
+         * @param attributes     可扩展属性（Extensible attributes）。
          */
         public RepositoryDescriptor {
             if (implementation == null || implementation.isBlank()) {
@@ -177,8 +196,8 @@ public interface Repository extends AutoCloseable {
                 if (!normalized.containsKey(scope)) {
                     throw new IllegalArgumentException("capabilities missing scope: " + scope);
                 }
-                normalized.get(scope).forEach(type ->
-                        Objects.requireNonNull(type, "capability contract type must not be null"));
+                normalized.get(scope)
+                        .forEach(type -> Objects.requireNonNull(type, "capability contract type must not be null"));
             }
             capabilities = normalized.entrySet().stream()
                     .collect(java.util.stream.Collectors.toUnmodifiableMap(
@@ -191,7 +210,7 @@ public interface Repository extends AutoCloseable {
          * @brief 判断能力是否可用（Check Capability Availability）；
          *        Check whether a capability is available.
          *
-         * @param scope 能力域（Capability scope）。
+         * @param scope        能力域（Capability scope）。
          * @param contractType 契约类型（Contract class type）。
          * @return 可用返回 true（true when available）。
          */
@@ -203,8 +222,8 @@ public interface Repository extends AutoCloseable {
     }
 
     /**
-     * @brief 仓储能力域（Repository Capability Scope），区分读写与事务通道；
-     *        Repository capability scope that separates read/write/transaction channels.
+     * @brief 仓储能力域（Repository Capability Scope），区分读写通道；
+     *        Repository capability scope that separates read/write channels.
      */
     enum CapabilityScope {
         /**
@@ -216,12 +235,7 @@ public interface Repository extends AutoCloseable {
          * @brief 写路径能力域（Write Scope）；
          *        Write-path capability scope.
          */
-        WRITE,
-        /**
-         * @brief 事务能力域（Transaction Scope）；
-         *        Transaction capability scope.
-         */
-        TRANSACTION
+        WRITE
     }
 
     /**
@@ -255,7 +269,8 @@ public interface Repository extends AutoCloseable {
          * @param target 目标版本（Target version）。
          * @return 兼容返回 true（true when compatible）。
          * @note 默认规则：同 major 且当前 minor 不小于目标 minor 视为兼容；
-         *       Default rule: compatible when major is equal and current minor is not less than target minor.
+         *       Default rule: compatible when major is equal and current minor is not
+         *       less than target minor.
          */
         public boolean isCompatibleWith(final SemanticVersion target) {
             Objects.requireNonNull(target, "target must not be null");
