@@ -113,9 +113,6 @@ src/main/java/com/moesegfault/banking/infrastructure/
 │   # GUI runtime 技术实现。提供 presentation/gui 中抽象接口的具体适配。
 │   # 支持多 GUI 技术栈切换（例如 Swing、JavaFX）。
 
-│   ├── GuiRuntimeSelector.java
-│   │   # GUI runtime 选择器。根据配置或启动参数选择具体技术栈实现。
-
 │   ├── swing/
 │   │   # 基于 Swing 的 GUI runtime 实现。
 
