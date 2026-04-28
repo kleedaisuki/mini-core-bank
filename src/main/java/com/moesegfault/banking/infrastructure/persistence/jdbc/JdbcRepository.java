@@ -1,0 +1,162 @@
+package com.moesegfault.banking.infrastructure.persistence.jdbc;
+
+import com.moesegfault.banking.domain.account.AccountRepository;
+import com.moesegfault.banking.domain.business.BusinessRepository;
+import com.moesegfault.banking.domain.card.CardRepository;
+import com.moesegfault.banking.domain.credit.CreditRepository;
+import com.moesegfault.banking.domain.customer.CustomerRepository;
+import com.moesegfault.banking.domain.investment.InvestmentRepository;
+import com.moesegfault.banking.domain.ledger.LedgerRepository;
+import com.moesegfault.banking.infrastructure.persistence.Repository;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.sql.DataSource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/**
+ * @brief JDBC 仓储聚合门面（JDBC Repository Aggregate Facade），按读/写/事务能力暴露反射契约；
+ *        JDBC repository aggregate facade exposing reflective contracts by read/write/transaction scopes.
+ */
+public final class JdbcRepository implements Repository {
+
+    /**
+     * @brief 能力描述符（Capability Descriptor）；
+     *        Capability descriptor.
+     */
+    private final RepositoryDescriptor descriptor;
+
+    /**
+     * @brief 读契约映射（Read Contract Map）；
+     *        Read contract map.
+     */
+    private final Map<Class<?>, Object> readContracts;
+
+    /**
+     * @brief 写契约映射（Write Contract Map）；
+     *        Write contract map.
+     */
+    private final Map<Class<?>, Object> writeContracts;
+
+    /**
+     * @brief 事务契约映射（Transaction Contract Map）；
+     *        Transaction contract map.
+     */
+    private final Map<Class<?>, Object> transactionContracts;
+
+    /**
+     * @brief 使用数据源构造 JDBC 聚合仓储（Construct JDBC Aggregate Repository with DataSource）；
+     *        Construct JDBC aggregate repository with datasource.
+     *
+     * @param dataSource 数据源（Data source）。
+     */
+    public JdbcRepository(final DataSource dataSource) {
+        final DataSource normalizedDataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(normalizedDataSource);
+
+        final CustomerRepository customerRepository = new JdbcCustomerRepository(jdbcTemplate);
+        final AccountRepository accountRepository = new JdbcAccountRepository(jdbcTemplate);
+        final CardRepository cardRepository = new JdbcCardRepository(jdbcTemplate);
+        final CreditRepository creditRepository = new JdbcCreditRepository(jdbcTemplate);
+        final InvestmentRepository investmentRepository = new JdbcInvestmentRepository(jdbcTemplate);
+        final BusinessRepository businessRepository = new JdbcBusinessRepository(jdbcTemplate);
+        final LedgerRepository ledgerRepository = new JdbcLedgerRepository(jdbcTemplate);
+
+        final PlatformTransactionManager transactionManager = new DataSourceTransactionManager(normalizedDataSource);
+        final TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+        this.readContracts = Map.of(
+                CustomerRepository.class, customerRepository,
+                AccountRepository.class, accountRepository,
+                CardRepository.class, cardRepository,
+                CreditRepository.class, creditRepository,
+                InvestmentRepository.class, investmentRepository,
+                BusinessRepository.class, businessRepository,
+                LedgerRepository.class, ledgerRepository);
+
+        this.writeContracts = Map.of(
+                CustomerRepository.class, customerRepository,
+                AccountRepository.class, accountRepository,
+                CardRepository.class, cardRepository,
+                CreditRepository.class, creditRepository,
+                InvestmentRepository.class, investmentRepository,
+                BusinessRepository.class, businessRepository,
+                LedgerRepository.class, ledgerRepository);
+
+        this.transactionContracts = Map.of(
+                PlatformTransactionManager.class, transactionManager,
+                TransactionTemplate.class, transactionTemplate,
+                DataSource.class, normalizedDataSource,
+                JdbcTemplate.class, jdbcTemplate);
+
+        this.descriptor = new RepositoryDescriptor(
+                "jdbc-postgresql",
+                new SemanticVersion(1, 0, 0),
+                Map.of(
+                        CapabilityScope.READ, readContracts.keySet(),
+                        CapabilityScope.WRITE, writeContracts.keySet(),
+                        CapabilityScope.TRANSACTION, transactionContracts.keySet()),
+                Map.of(
+                        "dialect", "postgresql",
+                        "driver", "jdbc",
+                        "rw-mode", "single-source"));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RepositoryDescriptor descriptor() {
+        return descriptor;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <T> Optional<T> reader(final Class<T> contractType) {
+        return resolveFromMap(readContracts, contractType);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <T> Optional<T> writer(final Class<T> contractType) {
+        return resolveFromMap(writeContracts, contractType);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <T> Optional<T> transaction(final Class<T> contractType) {
+        return resolveFromMap(transactionContracts, contractType);
+    }
+
+    /**
+     * @brief 按契约类型从映射解析实现（Resolve Implementation from Contract Map）；
+     *        Resolve implementation from contract map by contract type.
+     *
+     * @param <T> 契约类型（Contract type）。
+     * @param contractMap 契约映射（Contract map）。
+     * @param contractType 契约类型（Contract class type）。
+     * @return 契约实现可选值（Optional contract implementation）。
+     */
+    private static <T> Optional<T> resolveFromMap(
+            final Map<Class<?>, Object> contractMap,
+            final Class<T> contractType
+    ) {
+        Objects.requireNonNull(contractMap, "contractMap must not be null");
+        Objects.requireNonNull(contractType, "contractType must not be null");
+        final Object candidate = contractMap.get(contractType);
+        if (candidate == null) {
+            return Optional.empty();
+        }
+        return Optional.of(contractType.cast(candidate));
+    }
+}

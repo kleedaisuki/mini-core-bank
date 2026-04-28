@@ -815,10 +815,11 @@ mini-core-bank/
     │   │           ├── persistence/
     │   │           │   # 持久化实现。
     │   │           │
+    │   │           │   ├── Repository.java
+    │   │           │   │   # Repository 的 interface。
+    │   │           │   │
     │   │           │   ├── jdbc/
     │   │           │   │   # JDBC 版 Repository 实现。所有 SQL 先集中在这里。
-    │   │           │   │   ├── JdbcRepository.java
-    │   │           │   │   │   # JdbcRepository 的 interface。
     │   │           │   │
     │   │           │   │   ├── JdbcCustomerRepository.java
     │   │           │   │   │   # CustomerRepository 的 JDBC 实现。
