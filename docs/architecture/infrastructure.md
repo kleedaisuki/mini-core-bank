@@ -1,6 +1,6 @@
 ```text
 src/main/java/com/moesegfault/banking/infrastructure/
-# 基础设施层。负责数据库、迁移、配置、Repository 实现和事务管理。
+# 基础设施层。负责数据库、迁移、配置、Repository 实现、事务管理和 runtime 适配。
 
 ├── config/
 │   # 应用配置与依赖组装。
@@ -108,6 +108,97 @@ src/main/java/com/moesegfault/banking/infrastructure/
 
 │       └── JdbcTransactionManager.java
 │           # JDBC 事务管理实现。控制 commit、rollback 和 Connection 绑定。
+
+├── gui/
+│   # GUI runtime 技术实现。提供 presentation/gui 中抽象接口的具体适配。
+│   # 支持多 GUI 技术栈切换（例如 Swing、JavaFX）。
+
+│   ├── GuiRuntimeSelector.java
+│   │   # GUI runtime 选择器。根据配置或启动参数选择具体技术栈实现。
+
+│   ├── swing/
+│   │   # 基于 Swing 的 GUI runtime 实现。
+
+│   │   ├── SwingGuiRuntime.java
+│   │   │   # GuiRuntime 的 Swing 实现。管理主窗口生命周期和页面挂载。
+
+│   │   ├── SwingUiThreadScheduler.java
+│   │   │   # UiThreadScheduler 的 Swing 实现。基于 EDT 调度 UI 任务。
+
+│   │   ├── SwingGuiResourceLoader.java
+│   │   │   # GuiResourceLoader 的 Swing 实现。加载主题、图标和文案资源。
+
+│   │   └── view/
+│   │       # Swing 组件适配。实现 presentation/gui/view 抽象接口。
+
+│   │       ├── SwingMainWindowView.java
+│   │       │   # MainWindowView 的 Swing 适配实现。
+
+│   │       ├── SwingMainMenuView.java
+│   │       │   # MainMenuView 的 Swing 适配实现。
+
+│   │       ├── SwingStatusBarView.java
+│   │       │   # StatusBarView 的 Swing 适配实现。
+
+│   │       ├── SwingErrorDialogView.java
+│   │       │   # ErrorDialogView 的 Swing 适配实现。
+
+│   │       ├── SwingSuccessDialogView.java
+│   │       │   # SuccessDialogView 的 Swing 适配实现。
+
+│   │       ├── SwingConfirmDialogView.java
+│   │       │   # ConfirmDialogView 的 Swing 适配实现。
+
+│   │       ├── SwingTableView.java
+│   │       │   # TableView 的 Swing 适配实现。
+
+│   │       ├── SwingFormView.java
+│   │       │   # FormView 的 Swing 适配实现。
+
+│   │       └── SwingEmptyStateView.java
+│   │           # EmptyStateView 的 Swing 适配实现。
+
+│   └── javafx/
+│       # 基于 JavaFX 的 GUI runtime 实现。
+
+│       ├── JavaFxGuiRuntime.java
+│       │   # GuiRuntime 的 JavaFX 实现。管理 stage 生命周期和页面挂载。
+
+│       ├── JavaFxUiThreadScheduler.java
+│       │   # UiThreadScheduler 的 JavaFX 实现。基于 Application Thread 调度。
+
+│       ├── JavaFxGuiResourceLoader.java
+│       │   # GuiResourceLoader 的 JavaFX 实现。加载样式、图标和文案资源。
+
+│       └── view/
+│           # JavaFX 组件适配。实现 presentation/gui/view 抽象接口。
+
+│           ├── JavaFxMainWindowView.java
+│           │   # MainWindowView 的 JavaFX 适配实现。
+
+│           ├── JavaFxMainMenuView.java
+│           │   # MainMenuView 的 JavaFX 适配实现。
+
+│           ├── JavaFxStatusBarView.java
+│           │   # StatusBarView 的 JavaFX 适配实现。
+
+│           ├── JavaFxErrorDialogView.java
+│           │   # ErrorDialogView 的 JavaFX 适配实现。
+
+│           ├── JavaFxSuccessDialogView.java
+│           │   # SuccessDialogView 的 JavaFX 适配实现。
+
+│           ├── JavaFxConfirmDialogView.java
+│           │   # ConfirmDialogView 的 JavaFX 适配实现。
+
+│           ├── JavaFxTableView.java
+│           │   # TableView 的 JavaFX 适配实现。
+
+│           ├── JavaFxFormView.java
+│           │   # FormView 的 JavaFX 适配实现。
+
+│           └── JavaFxEmptyStateView.java
+│               # EmptyStateView 的 JavaFX 适配实现。
 
 ├── web/
 │   # Web runtime 技术实现。提供 presentation/web/WebRuntime 的具体实现。

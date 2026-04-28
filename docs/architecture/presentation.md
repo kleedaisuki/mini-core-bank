@@ -132,19 +132,23 @@ src/main/java/com/moesegfault/banking/presentation/
 │           # 处理 business list 命令。
 
 ├── gui/
-│   # 图形界面入口。采用简化经典 MVC。
+│   # 图形界面展示层。采用简化经典 MVC + 运行时抽象。
 │   # Model 是 GUI 页面状态，不是 domain model。
 │   # Controller 处理用户输入并更新 Model。
 │   # View 观察 Model 并渲染。
+│   # 具体 GUI 技术栈（Swing/JavaFX）实现放 infrastructure/gui。
 
 │   ├── BankingGui.java
-│   │   # GUI 启动入口。初始化依赖、主窗口、导航器，并启动第一个页面。
+│   │   # GUI 启动入口。选择 GUI 技术栈并启动 GuiApplication。
 
 │   ├── GuiApplication.java
-│   │   # GUI 应用对象。管理 GUI 生命周期、页面注册、主窗口和全局上下文。
+│   │   # GUI 应用对象。管理页面注册、导航和 GUI runtime 生命周期。
 
 │   ├── GuiContext.java
 │   │   # GUI 会话上下文。保存当前登录客户、当前页面、locale、主题等 UI 会话状态。
+
+│   ├── GuiToolkitType.java
+│   │   # GUI 技术栈枚举。例如 SWING、JAVAFX。用于 runtime 选择。
 
 │   ├── GuiNavigator.java
 │   │   # 页面导航器。负责在不同 GUI 页面之间切换。
@@ -165,7 +169,16 @@ src/main/java/com/moesegfault/banking/presentation/
 │   │   # GUI 异常处理器。把领域异常、应用异常、系统异常转换成页面错误状态。
 
 │   ├── GuiBootstrap.java
-│   │   # GUI 依赖装配入口。集中创建 application handler、repository、page factory 等对象。
+│   │   # GUI 依赖装配入口。集中创建 application handler、page factory、runtime 等对象。
+
+│   ├── GuiRuntime.java
+│   │   # GUI 运行时抽象。负责主窗口生命周期、事件循环、页面挂载。
+
+│   ├── UiThreadScheduler.java
+│   │   # UI 线程调度抽象。用于把任务切换到 GUI 主线程执行。
+
+│   ├── GuiResourceLoader.java
+│   │   # GUI 资源加载抽象。加载主题、文案、图标等资源。
 
 │   ├── mvc/
 │   │   # 简化经典 MVC 基础设施。Controller 改 Model，View 观察 Model。
@@ -192,34 +205,34 @@ src/main/java/com/moesegfault/banking/presentation/
 │   │       # View 事件对象。用于表达按钮点击、表单字段变化、列表选择等 UI 事件。
 
 │   ├── view/
-│   │   # 通用 GUI 视图组件。只负责 UI 展示，不调用 application handler。
+│   │   # 通用 GUI 视图抽象（View Port）。只定义展示语义，不绑定具体 toolkit。
 
-│   │   ├── MainWindow.java
-│   │   │   # 主窗口。包含菜单栏、内容区域、状态栏。
+│   │   ├── MainWindowView.java
+│   │   │   # 主窗口抽象。包含菜单区、内容区、状态栏和页面切换入口。
 
 │   │   ├── MainMenuView.java
-│   │   │   # 主菜单视图。提供客户、账户、卡、投资、账务等入口。
+│   │   │   # 主菜单视图抽象。提供客户、账户、卡、投资、账务等入口。
 
-│   │   ├── StatusBar.java
-│   │   │   # 状态栏组件。显示当前用户、当前页面、系统消息。
+│   │   ├── StatusBarView.java
+│   │   │   # 状态栏抽象。显示当前用户、当前页面、系统消息。
 
-│   │   ├── ErrorDialog.java
-│   │   │   # 错误弹窗组件。展示用户可读错误信息。
+│   │   ├── ErrorDialogView.java
+│   │   │   # 错误弹窗抽象。展示用户可读错误信息。
 
-│   │   ├── SuccessDialog.java
-│   │   │   # 成功提示弹窗组件。
+│   │   ├── SuccessDialogView.java
+│   │   │   # 成功提示弹窗抽象。
 
-│   │   ├── ConfirmDialog.java
-│   │   │   # 确认弹窗组件。用于高风险操作，例如还款、卖出投资产品。
+│   │   ├── ConfirmDialogView.java
+│   │   │   # 确认弹窗抽象。用于高风险操作确认。
 
-│   │   ├── TablePanel.java
-│   │   │   # 通用表格面板。用于展示客户列表、账户列表、流水列表。
+│   │   ├── TableView.java
+│   │   │   # 通用表格抽象。用于展示列表型数据。
 
-│   │   ├── FormPanel.java
-│   │   │   # 通用表单面板。封装字段布局、错误提示、提交按钮区域。
+│   │   ├── FormView.java
+│   │   │   # 通用表单抽象。封装字段布局、错误提示、提交区域。
 
-│   │   └── EmptyStatePanel.java
-│   │       # 空状态面板。用于列表无数据或查询无结果。
+│   │   └── EmptyStateView.java
+│   │       # 空状态抽象。用于列表无数据或查询无结果。
 
 │   ├── customer/
 │   │   # 客户相关 GUI MVC 页面。
