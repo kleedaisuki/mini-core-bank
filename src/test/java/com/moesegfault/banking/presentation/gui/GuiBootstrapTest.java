@@ -35,8 +35,8 @@ class GuiBootstrapTest {
                     case JAVAFX -> javaFxRuntime;
                 },
                 GuiContext::new,
-                registry -> registry.register(GuiPageId.of("home"), ctx -> createSimplePage("home")),
-                GuiPageId.of("home"));
+                GuiPageId.of("home"),
+                registrar -> registrar.register("home", ctx -> createSimplePage("home")));
 
         final GuiApplication application = bootstrap.bootstrap(GuiToolkitType.JAVAFX);
         application.start();
@@ -55,8 +55,8 @@ class GuiBootstrapTest {
         final GuiBootstrap bootstrap = new GuiBootstrap(
                 toolkitType -> runtime,
                 GuiContext::new,
-                registry -> registry.register(GuiPageId.of("home"), ctx -> createSimplePage("home")),
-                GuiPageId.of("home"));
+                GuiPageId.of("home"),
+                registrar -> registrar.register("home", ctx -> createSimplePage("home")));
         final BankingGui bankingGui = new BankingGui(bootstrap);
 
         final GuiApplication application = bankingGui.launch(GuiToolkitType.SWING);
@@ -74,11 +74,30 @@ class GuiBootstrapTest {
         final GuiBootstrap bootstrap = new GuiBootstrap(
                 toolkitType -> null,
                 GuiContext::new,
-                registry -> {
-                },
                 GuiPageId.of("home"));
 
         assertThrows(NullPointerException.class, () -> bootstrap.bootstrap(GuiToolkitType.SWING));
+    }
+
+    /**
+     * @brief 验证支持通过模块批量注册页面；
+     *        Verify bootstrap supports bulk page registration through modules.
+     */
+    @Test
+    void shouldRegisterPagesThroughGuiModules() {
+        final RecordingRuntime runtime = new RecordingRuntime();
+        final GuiModule coreModule = registrar -> registrar.register("home", ctx -> createSimplePage("home"));
+        final GuiBootstrap bootstrap = new GuiBootstrap(
+                toolkitType -> runtime,
+                GuiContext::new,
+                GuiPageId.of("home"),
+                coreModule);
+
+        final GuiApplication application = bootstrap.bootstrap(GuiToolkitType.SWING);
+        application.start();
+
+        assertEquals(1, runtime.startCount());
+        assertEquals(GuiPageId.of("home"), application.context().currentPageId().orElseThrow());
     }
 
     /**
