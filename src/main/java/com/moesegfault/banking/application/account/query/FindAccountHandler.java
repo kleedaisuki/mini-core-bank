@@ -7,6 +7,7 @@ import com.moesegfault.banking.domain.account.AccountId;
 import com.moesegfault.banking.domain.account.AccountRepository;
 import com.moesegfault.banking.domain.account.AccountType;
 import com.moesegfault.banking.domain.account.FxAccount;
+import com.moesegfault.banking.infrastructure.persistence.transaction.DbTransactionManager;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,6 +31,22 @@ public final class FindAccountHandler {
      */
     public FindAccountHandler(final AccountRepository accountRepository) {
         this.accountRepository = Objects.requireNonNull(accountRepository, "accountRepository must not be null");
+    }
+
+    /**
+     * @brief 兼容构造处理器（Compatibility Constructor）；
+     *        Compatibility constructor that accepts transaction manager for
+     *        existing wiring styles.
+     *
+     * @param accountRepository 账户仓储接口（Account repository port）。
+     * @param transactionManager 事务管理器（Transaction manager, currently unused）。
+     */
+    public FindAccountHandler(
+            final AccountRepository accountRepository,
+            final DbTransactionManager transactionManager
+    ) {
+        this(accountRepository);
+        Objects.requireNonNull(transactionManager, "transactionManager must not be null");
     }
 
     /**
