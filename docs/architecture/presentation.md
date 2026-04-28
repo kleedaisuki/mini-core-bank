@@ -169,7 +169,7 @@ src/main/java/com/moesegfault/banking/presentation/
 │   │   # GUI 异常处理器。把领域异常、应用异常、系统异常转换成页面错误状态。
 
 │   ├── GuiBootstrap.java
-│   │   # GUI 依赖装配入口。集中创建 application handler、page factory、runtime 等对象。
+│   │   # GUI 依赖装配入口。集中创建 application handler、page factory、runtime 等对象，并执行 runtime 选择逻辑。
 
 │   ├── GuiRuntime.java
 │   │   # GUI 运行时抽象。负责主窗口生命周期、事件循环、页面挂载。

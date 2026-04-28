@@ -4,36 +4,49 @@ import java.net.URL;
 import java.util.Optional;
 
 /**
- * @brief GUI 资源加载抽象（GUI Resource Loader Abstraction），读取文案与静态资源；
- *        GUI resource loader abstraction for i18n texts and static resources.
+ * @brief GUI 资源加载接口（GUI Resource Loader Interface），用于读取主题与文案资源；
+ *        GUI resource loader contract for theme and message resource retrieval.
  */
 public interface GuiResourceLoader {
 
     /**
-     * @brief 按 key 读取文案（Load Text by Key）；
-     *        Load one text value by key.
+     * @brief 读取文案资源（Load Optional Text Resource）；
+     *        Load optional text resource by key.
      *
-     * @param key 文案键（Text key）。
-     * @return 文案值（Text value），缺失则 empty。
+     * @param key 资源键（Resource key）。
+     * @return 可选资源值（Optional resource value）。
      */
     Optional<String> text(String key);
 
     /**
-     * @brief 读取文案并提供默认值（Load Text with Default）；
-     *        Load text by key or return provided default value.
+     * @brief 读取文案并提供默认值（Load Text Or Fallback）；
+     *        Load text resource with default fallback.
      *
-     * @param key 文案键（Text key）。
-     * @param defaultValue 默认文案（Default text）。
-     * @return 文案值（Resolved text）。
+     * @param key 资源键（Resource key）。
+     * @param defaultValue 默认值（Default value）。
+     * @return 文案值（Resolved text value）。
      */
-    String textOrDefault(String key, String defaultValue);
+    default String textOrDefault(final String key, final String defaultValue) {
+        return text(key).orElse(defaultValue);
+    }
 
     /**
-     * @brief 按路径读取资源 URL（Load Resource URL）；
-     *        Load resource URL from classpath.
+     * @brief 读取二进制资源路径（Load Optional Binary Resource）；
+     *        Load optional binary resource URL by classpath path.
      *
      * @param path 资源路径（Resource path）。
-     * @return 资源 URL（Resource URL），缺失则 empty。
+     * @return 可选 URL（Optional resource URL）。
      */
     Optional<URL> resource(String path);
+
+    /**
+     * @brief 读取必须文案（Load Required Message）；
+     *        Load required message text by key.
+     *
+     * @param key 资源键（Resource key）。
+     * @return 文案值（Message text）。
+     */
+    default String message(final String key) {
+        return textOrDefault(key, key);
+    }
 }
