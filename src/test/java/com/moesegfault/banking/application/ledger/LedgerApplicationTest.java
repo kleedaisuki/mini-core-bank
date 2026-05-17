@@ -73,7 +73,7 @@ class LedgerApplicationTest {
         final IdGenerator idGenerator = sequentialIdGenerator("batch-001", "entry-001");
         final DbTransactionManager transactionManager = passthroughTransactionManager();
 
-        final Instant now = Instant.parse("2026-04-28T12:00:00Z");
+        final Instant now = Instant.now().plusSeconds(1);
         when(businessRepository.findTransactionById(BusinessTransactionId.of("txn-001")))
                 .thenReturn(Optional.of(businessTransaction("txn-001", now)));
         when(accountRepository.findAccountById(AccountId.of("acc-001")))
@@ -101,7 +101,7 @@ class LedgerApplicationTest {
                         EntryDirection.CREDIT,
                         usd("100.0000"),
                         EntryType.PRINCIPAL)),
-                Instant.parse("2026-04-28T12:00:01Z"));
+                now.plusSeconds(1));
 
         final PostingBatchId postedBatchId = handler.handle(command);
         assertEquals("batch-001", postedBatchId.value());

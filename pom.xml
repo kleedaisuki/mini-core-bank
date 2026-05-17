@@ -212,6 +212,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.moesegfault.banking.presentation.cli.Main</mainClass>
+                </configuration>
             </plugin>
 
             <plugin>
