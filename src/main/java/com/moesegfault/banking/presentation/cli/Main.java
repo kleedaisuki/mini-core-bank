@@ -2,9 +2,6 @@ package com.moesegfault.banking.presentation.cli;
 
 import com.moesegfault.banking.presentation.cli.bootstrap.CliBootstrap;
 import com.moesegfault.banking.presentation.cli.bootstrap.CliRuntime;
-import com.moesegfault.banking.presentation.cli.gui.DefaultGuiCliLauncher;
-import com.moesegfault.banking.presentation.cli.gui.GuiCliLauncher;
-import com.moesegfault.banking.presentation.gui.GuiToolkitType;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -89,32 +86,10 @@ public final class Main {
             final PrintStream output,
             final PrintStream error
     ) {
-        return run(args, input, output, error, new DefaultGuiCliLauncher());
-    }
-
-    /**
-     * @brief 执行 CLI 并注入 GUI 启动器（Run CLI With Injectable GUI Launcher）；
-     *        Run CLI with injectable GUI launcher for command routing tests.
-     *
-     * @param args        命令行参数（Command-line arguments）。
-     * @param input       Shell 输入读取器（Shell input reader）。
-     * @param output      标准输出流（Standard output stream）。
-     * @param error       标准错误流（Standard error stream）。
-     * @param guiLauncher GUI 启动器（GUI launcher）。
-     * @return 退出码（Exit code）。
-     */
-    static int run(
-            final String[] args,
-            final Reader input,
-            final PrintStream output,
-            final PrintStream error,
-            final GuiCliLauncher guiLauncher
-    ) {
         final String[] normalizedArgs = Objects.requireNonNull(args, "args must not be null").clone();
         final Reader normalizedInput = Objects.requireNonNull(input, "input must not be null");
         final PrintStream normalizedOutput = Objects.requireNonNull(output, "output must not be null");
         final PrintStream normalizedError = Objects.requireNonNull(error, "error must not be null");
-        final GuiCliLauncher normalizedGuiLauncher = Objects.requireNonNull(guiLauncher, "guiLauncher must not be null");
 
         if (normalizedArgs.length == 0 || isHelpRequest(normalizedArgs)) {
             printUsage(normalizedOutput);
@@ -125,9 +100,8 @@ public final class Main {
         }
 
         try {
-            if (isGuiRequest(normalizedArgs)) {
-                normalizedGuiLauncher.launch(parseGuiToolkit(normalizedArgs));
-                return EXIT_SUCCESS;
+            if (isRemovedGuiRequest(normalizedArgs)) {
+                throw new IllegalArgumentException("GUI support has been removed. Use CLI commands or shell mode.");
             }
 
             final CliRuntime runtime = new CliBootstrap().bootstrap();
@@ -181,86 +155,18 @@ public final class Main {
     }
 
     /**
-     * @brief 判断是否 GUI 启动请求（Check GUI Launch Request）；
-     *        Check whether arguments request GUI launch mode.
+     * @brief 判断是否已移除的 GUI 请求（Check Removed GUI Request）；
+     *        Check whether arguments request removed GUI launch mode.
      *
      * @param args 命令行参数（Command-line arguments）。
-     * @return true 表示 GUI 启动请求（true when GUI launch is requested）。
+     * @return true 表示已移除 GUI 请求（true when removed GUI launch is requested）。
      */
-    private static boolean isGuiRequest(final String[] args) {
+    private static boolean isRemovedGuiRequest(final String[] args) {
         if (args.length == 0) {
             return false;
         }
         return "gui".equals(args[0])
                 || (args.length >= 2 && "launch".equals(args[0]) && "gui".equals(args[1]));
-    }
-
-    /**
-     * @brief 解析 GUI 技术栈参数（Parse GUI Toolkit Argument）；
-     *        Parse GUI toolkit argument with Swing as default.
-     *
-     * @param args 命令行参数（Command-line arguments）。
-     * @return GUI 技术栈（GUI toolkit type）。
-     */
-    private static GuiToolkitType parseGuiToolkit(final String[] args) {
-        int index = guiOptionStartIndex(args);
-        boolean toolkitSeen = false;
-        GuiToolkitType toolkitType = GuiToolkitType.SWING;
-        while (index < args.length) {
-            final String argument = args[index];
-            if ("--toolkit".equals(argument)) {
-                if (index + 1 >= args.length) {
-                    throw new IllegalArgumentException("Missing value for --toolkit");
-                }
-                toolkitType = parseSingleGuiToolkit(args[index + 1], toolkitSeen);
-                toolkitSeen = true;
-                index += 2;
-                continue;
-            }
-            if (argument.startsWith("--toolkit=")) {
-                toolkitType = parseSingleGuiToolkit(argument.substring("--toolkit=".length()), toolkitSeen);
-                toolkitSeen = true;
-                index++;
-                continue;
-            }
-            if (!argument.startsWith("-")) {
-                toolkitType = parseSingleGuiToolkit(argument, toolkitSeen);
-                toolkitSeen = true;
-                index++;
-                continue;
-            }
-            throw new IllegalArgumentException("Unknown gui option: " + argument);
-        }
-        return toolkitType;
-    }
-
-    /**
-     * @brief 解析单个 GUI 技术栈值（Parse Single GUI Toolkit Value）；
-     *        Parse one GUI toolkit value and reject duplicates.
-     *
-     * @param value       技术栈文本（Toolkit text）。
-     * @param toolkitSeen 是否已出现技术栈参数（Whether toolkit was already provided）。
-     * @return GUI 技术栈（GUI toolkit type）。
-     */
-    private static GuiToolkitType parseSingleGuiToolkit(final String value, final boolean toolkitSeen) {
-        if (toolkitSeen) {
-            throw new IllegalArgumentException("GUI toolkit must be provided only once");
-        }
-        return GuiToolkitType.from(value);
-    }
-
-    /**
-     * @brief 获取 GUI 选项起始下标（Get GUI Option Start Index）；
-     *        Get first argument index after GUI command tokens.
-     *
-     * @param args 命令行参数（Command-line arguments）。
-     * @return GUI 选项起始下标（GUI option start index）。
-     */
-    private static int guiOptionStartIndex(final String[] args) {
-        if ("gui".equals(args[0])) {
-            return 1;
-        }
-        return 2;
     }
 
     /**

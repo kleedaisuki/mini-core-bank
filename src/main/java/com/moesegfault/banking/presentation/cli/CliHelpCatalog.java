@@ -16,12 +16,6 @@ public final class CliHelpCatalog {
      */
     private static final List<CommandHelp> COMMANDS = List.of(
             command(
-                    "gui",
-                    "Launch the desktop GUI from one-shot CLI mode.",
-                    List.of(),
-                    List.of("--toolkit <swing>"),
-                    "gui --toolkit swing"),
-            command(
                     "customer register",
                     "Register a new customer profile after identity, address, phone, and tax checks.",
                     List.of(
