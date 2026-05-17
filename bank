@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_DIR="$ROOT_DIR/target"
+
+if [[ ! -d "$PACKAGE_DIR" ]]; then
+    echo "No Maven target directory found. Build first with: ./mvnw -q -DskipTests package" >&2
+    exit 1
+fi
+
+LATEST_JAR="$(
+    find "$PACKAGE_DIR" \
+        -maxdepth 1 \
+        -type f \
+        -name 'mini-core-bank-*.jar' \
+        ! -name '*.original' \
+        -printf '%T@\t%p\n' \
+        | sort -nr \
+        | awk -F '\t' 'NR == 1 { print $2 }'
+)"
+
+if [[ -z "$LATEST_JAR" ]]; then
+    echo "No packaged mini-core-bank jar found. Build first with: ./mvnw -q -DskipTests package" >&2
+    exit 1
+fi
+
+exec java -jar "$LATEST_JAR" "$@"

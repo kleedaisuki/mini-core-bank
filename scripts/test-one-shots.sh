@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI_JAR="${CLI_JAR:-"$ROOT_DIR/target/mini-core-bank-0.1.0-SNAPSHOT.jar"}"
+CLI_BIN="${CLI_BIN:-"$ROOT_DIR/bank"}"
 DB_URL="${BANK_DB_URL:-jdbc:postgresql://localhost:5432/mini_core_bank}"
 DB_USERNAME="${BANK_DB_USERNAME:-mini_core_bank}"
 DB_PASSWORD="${BANK_DB_PASSWORD:-mini_core_bank}"
@@ -16,7 +16,7 @@ CUSTOMER_ID=""
 ACCOUNT_ID=""
 
 run_cli() {
-    java -jar "$CLI_JAR" "$@"
+    "$CLI_BIN" "$@"
 }
 
 cleanup() {
@@ -64,7 +64,7 @@ require_contains() {
 
 trap cleanup EXIT
 
-require_file "$CLI_JAR"
+require_file "$CLI_BIN"
 
 help_output="$(run_cli help gui)"
 require_contains "$help_output" "Launch the desktop GUI"
