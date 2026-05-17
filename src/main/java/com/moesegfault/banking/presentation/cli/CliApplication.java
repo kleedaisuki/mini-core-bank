@@ -1,5 +1,6 @@
 package com.moesegfault.banking.presentation.cli;
 
+import com.moesegfault.banking.presentation.cli.style.CliStyle;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
@@ -65,17 +66,31 @@ public final class CliApplication {
      */
     public void printUsage(final PrintStream output) {
         final PrintStream normalizedOutput = Objects.requireNonNull(output, "output must not be null");
-        normalizedOutput.println("Usage: java -jar mini-core-bank.jar <command> [--option value]");
-        normalizedOutput.println("       java -jar mini-core-bank.jar shell");
-        normalizedOutput.println("       :bash <command>");
-        normalizedOutput.println("       :exit | :quit");
-        normalizedOutput.println("       help <command>");
+        normalizedOutput.println(CliStyle.title("Mini Core Bank CLI"));
+        normalizedOutput.println(CliStyle.muted("Command-line tools for the mini core banking runtime."));
         normalizedOutput.println();
-        normalizedOutput.println("General:");
-        normalizedOutput.println("  Use single quotes around values that contain spaces.");
-        normalizedOutput.println("  Option aliases with underscores are usually accepted, for example --customer_id.");
+        normalizedOutput.println(CliStyle.section("Usage"));
+        normalizedOutput.println("  " + CliStyle.command("java -jar mini-core-bank.jar <command> [--option value]"));
+        normalizedOutput.println("  " + CliStyle.command("java -jar mini-core-bank.jar shell"));
+        normalizedOutput.println("  " + CliStyle.command(":bash <command>"));
+        normalizedOutput.println("  " + CliStyle.command(":exit | :quit"));
+        normalizedOutput.println("  " + CliStyle.command("help <command>"));
         normalizedOutput.println();
-        normalizedOutput.println("Commands:");
+        normalizedOutput.println(CliStyle.section("General"));
+        normalizedOutput.println("  " + CliStyle.hint("Tip") + ": use single quotes around values that contain spaces.");
+        normalizedOutput.println("  " + CliStyle.hint("Tip") + ": option aliases with underscores are usually accepted, for example "
+                + CliStyle.option("--customer_id") + ".");
+        normalizedOutput.println("  " + CliStyle.hint("Tip") + ": run "
+                + CliStyle.command("help <command>")
+                + " to see required options, optional options, and an example.");
+        normalizedOutput.println("  " + CliStyle.hint("Tip") + ": in shell mode, simple options can be supplied positionally "
+                + "in the order shown by command help.");
+        normalizedOutput.println();
+        normalizedOutput.println(CliStyle.section("Commands"));
+        final int commandWidth = commandRegistry.registeredCommandPaths().stream()
+                .mapToInt(String::length)
+                .max()
+                .orElse(0);
         commandRegistry.registeredCommandPaths().forEach(commandPath -> {
             final CliHelpCatalog.CommandHelp commandHelp = CliHelpCatalog.find(commandPath)
                     .orElseGet(() -> new CliHelpCatalog.CommandHelp(
@@ -84,13 +99,16 @@ public final class CliApplication {
                             List.of(),
                             List.of(),
                             commandPath));
-            printCommandSummary(normalizedOutput, commandHelp);
+            printCommandSummary(normalizedOutput, commandHelp, commandWidth);
         });
         normalizedOutput.println();
-        normalizedOutput.println("Shell commands:");
-        normalizedOutput.println("  help                 Show command summaries.");
-        normalizedOutput.println("  help <command>       Show help for one command, for example: help customer register.");
-        normalizedOutput.println("  :exit | :quit        Leave shell mode and close runtime resources.");
+        normalizedOutput.println(CliStyle.section("Shell Commands"));
+        normalizedOutput.println("  " + CliStyle.command("help") + paddedGap("help", 20)
+                + "Show command summaries.");
+        normalizedOutput.println("  " + CliStyle.command("help <command>") + paddedGap("help <command>", 20)
+                + "Show detailed help, for example: " + CliStyle.command("help customer register") + ".");
+        normalizedOutput.println("  " + CliStyle.command(":exit | :quit") + paddedGap(":exit | :quit", 20)
+                + "Leave shell mode and close runtime resources.");
     }
 
     /**
@@ -118,10 +136,13 @@ public final class CliApplication {
      */
     private static void printCommandSummary(
             final PrintStream output,
-            final CliHelpCatalog.CommandHelp commandHelp
+            final CliHelpCatalog.CommandHelp commandHelp,
+            final int commandWidth
     ) {
-        output.println("  " + commandHelp.commandPath());
-        output.println("    " + commandHelp.summary());
+        output.println("  "
+                + CliStyle.command(commandHelp.commandPath())
+                + paddedGap(commandHelp.commandPath(), commandWidth + 4)
+                + commandHelp.summary());
     }
 
     /**
@@ -135,11 +156,13 @@ public final class CliApplication {
             final PrintStream output,
             final CliHelpCatalog.CommandHelp commandHelp
     ) {
-        output.println("  " + commandHelp.commandPath());
-        output.println("    " + commandHelp.summary());
+        output.println(CliStyle.title(commandHelp.commandPath()));
+        output.println("  " + commandHelp.summary());
+        printPositionalSection(output, commandHelp);
         printOptionSection(output, "Required", commandHelp.requiredOptions());
         printOptionSection(output, "Optional", commandHelp.optionalOptions());
-        output.println("    Example: " + commandHelp.example());
+        output.println("  " + CliStyle.label("Example"));
+        output.println("    " + CliStyle.command(commandHelp.example()));
     }
 
     /**
@@ -158,7 +181,44 @@ public final class CliApplication {
         if (options.isEmpty()) {
             return;
         }
-        output.println("    " + label + ": " + String.join(", ", options));
+        output.println("  " + CliStyle.label(label));
+        options.forEach(option -> output.println("    " + CliStyle.option(option)));
+    }
+
+    /**
+     * @brief 打印位置参数段落（Print Positional Argument Section）；
+     *        Print positional argument order for commands that support it.
+     *
+     * @param output      输出流（Output stream）。
+     * @param commandHelp 命令帮助条目（Command help entry）。
+     */
+    private static void printPositionalSection(
+            final PrintStream output,
+            final CliHelpCatalog.CommandHelp commandHelp
+    ) {
+        final List<String> positionalOptionNames = commandHelp.positionalOptionNames();
+        if (positionalOptionNames.isEmpty()) {
+            return;
+        }
+
+        output.println("  " + CliStyle.label("Positional"));
+        output.println("    " + positionalOptionNames.stream()
+                .map(optionName -> CliStyle.option("<" + optionName + ">"))
+                .reduce((left, right) -> left + " " + right)
+                .orElse(""));
+    }
+
+    /**
+     * @brief 计算填充间距（Calculate Padding Gap）；
+     *        Calculate a fixed-width visual gap for aligned help text.
+     *
+     * @param text  文本（Text）。
+     * @param width 目标宽度（Target width）。
+     * @return 空格字符串（Space string）。
+     */
+    private static String paddedGap(final String text, final int width) {
+        final int spaces = Math.max(2, width - text.length());
+        return " ".repeat(spaces);
     }
 
     /**

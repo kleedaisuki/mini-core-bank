@@ -3,6 +3,7 @@ package com.moesegfault.banking.presentation.cli;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,48 @@ class CommandDispatcherTest {
         dispatcher.dispatch(new ParsedCommand("customer register --phone 1", java.util.List.of("customer", "register"), Map.of("phone", "1")));
 
         assertEquals(1, handler.invocationCount());
+    }
+
+    /**
+     * @brief 验证命令后的位置参数会绑定为已记录参数；
+     *        Verify positional tokens after a command bind to documented options.
+     */
+    @Test
+    void shouldBindPositionalArgumentsToDocumentedOptions() {
+        final CommandRegistry registry = new CommandRegistry();
+        registry.register("customer show", CountingHandler.class);
+
+        final CountingHandler handler = new CountingHandler();
+        final CommandDispatcher dispatcher = new CommandDispatcher(
+                registry,
+                handlerType -> Map.of(CountingHandler.class, handler).get(handlerType));
+
+        dispatcher.dispatch(new ParsedCommand("customer show cust-001", List.of("customer", "show", "cust-001"), Map.of()));
+
+        assertEquals(1, handler.invocationCount());
+        assertEquals("customer show", handler.lastCommand().commandPath());
+        assertEquals(List.of("cust-001"), handler.lastCommand().positionalArguments());
+        assertEquals("cust-001", handler.lastCommand().requiredOption("customer-id"));
+    }
+
+    /**
+     * @brief 验证位置参数不会覆盖显式参数；
+     *        Verify positional arguments do not overwrite explicit options.
+     */
+    @Test
+    void shouldRejectConflictingPositionalAndExplicitOption() {
+        final CommandRegistry registry = new CommandRegistry();
+        registry.register("customer show", CountingHandler.class);
+        final CommandDispatcher dispatcher = new CommandDispatcher(
+                registry,
+                handlerType -> new CountingHandler());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> dispatcher.dispatch(new ParsedCommand(
+                        "customer show cust-001 --customer-id cust-002",
+                        List.of("customer", "show", "cust-001"),
+                        Map.of("customer-id", "cust-002"))));
     }
 
     /**
@@ -78,10 +121,17 @@ class CommandDispatcherTest {
         private final AtomicInteger invocationCounter = new AtomicInteger();
 
         /**
+         * @brief 最近命令（Last Command）；
+         *        Last command handled by this handler.
+         */
+        private ParsedCommand lastCommand;
+
+        /**
          * {@inheritDoc}
          */
         @Override
         public void handle(final ParsedCommand command) {
+            lastCommand = command;
             invocationCounter.incrementAndGet();
         }
 
@@ -93,6 +143,16 @@ class CommandDispatcherTest {
          */
         public int invocationCount() {
             return invocationCounter.get();
+        }
+
+        /**
+         * @brief 获取最近命令（Get Last Command）；
+         *        Get the last handled command.
+         *
+         * @return 最近命令（Last command）。
+         */
+        public ParsedCommand lastCommand() {
+            return lastCommand;
         }
     }
 }

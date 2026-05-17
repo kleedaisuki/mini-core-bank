@@ -4,6 +4,7 @@ import com.moesegfault.banking.presentation.cli.bootstrap.CliBootstrap;
 import com.moesegfault.banking.presentation.cli.bootstrap.CliRuntime;
 import com.moesegfault.banking.presentation.cli.builtin.BashCliHandler;
 import com.moesegfault.banking.presentation.cli.builtin.BuiltinCliCommands;
+import com.moesegfault.banking.presentation.cli.style.CliStyle;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -121,10 +122,10 @@ public final class Main {
                 return EXIT_SUCCESS;
             }
         } catch (IllegalArgumentException exception) {
-            normalizedError.println(exception.getMessage());
+            printUsageError(normalizedError, exception.getMessage());
             return EXIT_USAGE_ERROR;
         } catch (Exception exception) {
-            normalizedError.println("CLI command failed: " + exception.getMessage());
+            printRuntimeError(normalizedError, "CLI command failed: " + exception.getMessage());
             return EXIT_RUNTIME_ERROR;
         }
     }
@@ -227,7 +228,7 @@ public final class Main {
         if (createHelpApplication().printCommandHelp(output, commandPath)) {
             return EXIT_SUCCESS;
         }
-        error.println("Unknown command for help: " + commandPath);
+        printUsageError(error, "Unknown command for help: " + commandPath);
         return EXIT_USAGE_ERROR;
     }
 
@@ -245,6 +246,33 @@ public final class Main {
                 .orElse("");
         new BashCliHandler(output).runScript(script);
         return EXIT_SUCCESS;
+    }
+
+    /**
+     * @brief 打印用法错误（Print Usage Error）；
+     *        Print a usage error with actionable help hints.
+     *
+     * @param error   标准错误流（Standard error stream）。
+     * @param message 错误消息（Error message）。
+     */
+    private static void printUsageError(final PrintStream error, final String message) {
+        error.println(CliStyle.error("Error") + ": " + message);
+        error.println(CliStyle.hint("Hint") + ": run "
+                + CliStyle.command("help")
+                + " to list commands, or "
+                + CliStyle.command("help <command>")
+                + " to inspect required options and examples.");
+    }
+
+    /**
+     * @brief 打印运行时错误（Print Runtime Error）；
+     *        Print a runtime error with a clear label.
+     *
+     * @param error   标准错误流（Standard error stream）。
+     * @param message 错误消息（Error message）。
+     */
+    private static void printRuntimeError(final PrintStream error, final String message) {
+        error.println(CliStyle.error("Runtime error") + ": " + message);
     }
 
     /**

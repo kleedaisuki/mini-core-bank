@@ -1,6 +1,7 @@
 package com.moesegfault.banking.presentation.cli;
 
 import com.moesegfault.banking.presentation.cli.builtin.BuiltinExitRequested;
+import com.moesegfault.banking.presentation.cli.style.CliStyle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -111,7 +112,8 @@ public final class CliShell {
      * @return 退出码（Exit code）。
      */
     public int run() {
-        output.println("Mini Core Bank CLI shell. Type help for commands, :exit to quit.");
+        output.println(CliStyle.title("Mini Core Bank CLI shell"));
+        output.println(CliStyle.muted("Type help for command summaries, help <command> for details, :exit to quit."));
         try {
             String line = readLine();
             while (line != null) {
@@ -126,7 +128,7 @@ public final class CliShell {
             }
             return EXIT_SUCCESS;
         } catch (IOException exception) {
-            error.printf(Locale.ROOT, "Shell failed: %s%n", exception.getMessage());
+            printRuntimeError("Shell failed: " + exception.getMessage());
             return EXIT_RUNTIME_ERROR;
         }
     }
@@ -139,7 +141,7 @@ public final class CliShell {
      * @throws IOException 当底层读取失败时抛出（Thrown when underlying read fails）。
      */
     private String readLine() throws IOException {
-        output.print(prompt);
+        output.print(CliStyle.prompt(prompt));
         output.flush();
         return input.readLine();
     }
@@ -161,9 +163,9 @@ public final class CliShell {
         } catch (BuiltinExitRequested exception) {
             return false;
         } catch (IllegalArgumentException exception) {
-            error.println(exception.getMessage());
+            printUsageError(commandLine, exception.getMessage());
         } catch (Exception exception) {
-            error.println("CLI command failed: " + exception.getMessage());
+            printRuntimeError("CLI command failed: " + exception.getMessage());
         }
         return true;
     }
@@ -200,7 +202,34 @@ public final class CliShell {
             return;
         }
         if (!application.printCommandHelp(output, commandPath)) {
-            error.println("Unknown command for help: " + commandPath);
+            printUsageError(commandLine, "Unknown command for help: " + commandPath);
         }
+    }
+
+    /**
+     * @brief 打印用法错误（Print Usage Error）；
+     *        Print a user-actionable usage error with hints.
+     *
+     * @param commandLine 命令行（Command line）。
+     * @param message     错误消息（Error message）。
+     */
+    private void printUsageError(final String commandLine, final String message) {
+        error.println(CliStyle.error("Error") + ": " + message);
+        error.println(CliStyle.hint("Hint") + ": run "
+                + CliStyle.command("help")
+                + " for command summaries, or "
+                + CliStyle.command("help <command>")
+                + " for required options and examples.");
+        error.println(CliStyle.muted("Input: " + commandLine));
+    }
+
+    /**
+     * @brief 打印运行时错误（Print Runtime Error）；
+     *        Print a runtime error with a clear label.
+     *
+     * @param message 错误消息（Error message）。
+     */
+    private void printRuntimeError(final String message) {
+        error.println(CliStyle.error("Runtime error") + ": " + message);
     }
 }

@@ -332,5 +332,39 @@ public final class CliHelpCatalog {
                 throw new IllegalArgumentException("example must not be blank");
             }
         }
+
+        /**
+         * @brief 获取位置参数绑定顺序（Get Positional Argument Binding Order）；
+         *        Get the positional argument binding order for simple documented options.
+         *
+         * @return 参数名列表（Option name list）。
+         */
+        public List<String> positionalOptionNames() {
+            return java.util.stream.Stream.concat(requiredOptions.stream(), optionalOptions.stream())
+                    .map(CommandHelp::simpleOptionName)
+                    .flatMap(Optional::stream)
+                    .toList();
+        }
+
+        /**
+         * @brief 读取简单参数名（Read Simple Option Name）；
+         *        Read the option name from a simple `--name <value>` option spec.
+         *
+         * @param optionSpec 参数规格（Option spec）。
+         * @return 参数名可选值（Optional option name）。
+         */
+        private static Optional<String> simpleOptionName(final String optionSpec) {
+            final String trimmedSpec = Objects.requireNonNull(optionSpec, "optionSpec must not be null").trim();
+            if (!trimmedSpec.startsWith("--")) {
+                return Optional.empty();
+            }
+
+            final int endIndex = trimmedSpec.indexOf(' ');
+            final String optionToken = endIndex < 0 ? trimmedSpec : trimmedSpec.substring(0, endIndex);
+            if (optionToken.length() <= 2) {
+                return Optional.empty();
+            }
+            return Optional.of(optionToken.substring(2));
+        }
     }
 }

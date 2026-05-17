@@ -85,6 +85,7 @@ class CliShellTest {
         final String output = outputBytes.toString(StandardCharsets.UTF_8);
 
         assertEquals(CliShell.EXIT_SUCCESS, exitCode);
+        assertTrue(output.contains("\u001B["));
         assertTrue(output.contains("Register a new customer profile"));
         assertFalse(output.contains("--id-type <type>"));
         assertFalse(output.contains("Example: customer register"));
@@ -124,7 +125,8 @@ class CliShellTest {
         assertEquals(CliShell.EXIT_SUCCESS, exitCode);
         assertTrue(output.contains("Register a new customer profile"));
         assertTrue(output.contains("--id-type <type>"));
-        assertTrue(output.contains("Example: customer register"));
+        assertTrue(output.contains("Example"));
+        assertTrue(output.contains("customer register --id-type"));
         assertEquals("", errorBytes.toString(StandardCharsets.UTF_8));
     }
 

@@ -15,8 +15,25 @@ import java.util.Optional;
 public record ParsedCommand(
         String rawInput,
         List<String> commandPathSegments,
+        List<String> positionalArguments,
         Map<String, String> options
 ) {
+
+    /**
+     * @brief 兼容构造器（Compatibility Constructor），创建无位置参数的解析结果；
+     *        Compatibility constructor that creates a parsed command without positional arguments.
+     *
+     * @param rawInput            原始命令文本（Raw command text）。
+     * @param commandPathSegments 命令路径分段（Command path segments）。
+     * @param options             命令参数映射（Command options map）。
+     */
+    public ParsedCommand(
+            final String rawInput,
+            final List<String> commandPathSegments,
+            final Map<String, String> options
+    ) {
+        this(rawInput, commandPathSegments, List.of(), options);
+    }
 
     /**
      * @brief 规范化构造（Canonical Constructor），复制输入并保证不可变；
@@ -24,6 +41,7 @@ public record ParsedCommand(
      *
      * @param rawInput            原始命令文本（Raw command text）。
      * @param commandPathSegments 命令路径分段（Command path segments）。
+     * @param positionalArguments 位置参数列表（Positional argument list）。
      * @param options             命令参数映射（Command options map）。
      */
     public ParsedCommand {
@@ -39,6 +57,9 @@ public record ParsedCommand(
             throw new IllegalArgumentException("commandPathSegments must not be empty");
         }
 
+        final List<String> copiedPositionalArguments = List.copyOf(Objects.requireNonNull(
+                positionalArguments,
+                "positionalArguments must not be null"));
         final Map<String, String> copiedOptions = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(
                 options,
                 "options must not be null")));
@@ -47,6 +68,15 @@ public record ParsedCommand(
             final String normalizedSegment = Objects.requireNonNull(segment, "command path segment must not be null").trim();
             if (normalizedSegment.isEmpty()) {
                 throw new IllegalArgumentException("command path segment must not be blank");
+            }
+        }
+
+        for (String positionalArgument : copiedPositionalArguments) {
+            final String normalizedArgument = Objects.requireNonNull(
+                    positionalArgument,
+                    "positional argument must not be null").trim();
+            if (normalizedArgument.isEmpty()) {
+                throw new IllegalArgumentException("positional argument must not be blank");
             }
         }
 
@@ -60,6 +90,7 @@ public record ParsedCommand(
 
         rawInput = normalizedRawInput;
         commandPathSegments = copiedPathSegments;
+        positionalArguments = copiedPositionalArguments;
         options = copiedOptions;
     }
 
