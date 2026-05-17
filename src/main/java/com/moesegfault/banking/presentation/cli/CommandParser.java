@@ -1,8 +1,10 @@
 package com.moesegfault.banking.presentation.cli;
 
+import com.moesegfault.banking.presentation.cli.builtin.BuiltinCliCommands;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -32,6 +34,13 @@ public final class CommandParser {
         }
 
         final List<String> tokens = tokenize(normalizedInput);
+        if (isRemainderCommand(tokens.get(0))) {
+            return new ParsedCommand(normalizedInput, List.of(BuiltinCliCommands.BASH), Map.of());
+        }
+        if (tokens.size() == 1 && BuiltinCliCommands.isExit(tokens.get(0))) {
+            return new ParsedCommand(normalizedInput, List.of(tokens.get(0).toLowerCase(Locale.ROOT)), Map.of());
+        }
+
         final List<String> commandPathSegments = new ArrayList<>();
         final Map<String, String> options = new LinkedHashMap<>();
 
@@ -133,6 +142,17 @@ public final class CommandParser {
             throw new IllegalArgumentException("Option name must not be blank");
         }
         return normalized;
+    }
+
+    /**
+     * @brief 判断是否剩余参数命令（Check Remainder Command）；
+     *        Check whether the first token owns the rest of the input text.
+     *
+     * @param token 首个令牌（First token）。
+     * @return true 表示命令接管剩余输入（true when command owns the remaining input）。
+     */
+    private static boolean isRemainderCommand(final String token) {
+        return BuiltinCliCommands.isBash(token);
     }
 
     /**

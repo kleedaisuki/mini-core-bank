@@ -226,7 +226,25 @@ public final class CliHelpCatalog {
                     "List holdings under one investment account.",
                     List.of("--investment-account-id <id>"),
                     List.of("--include-product-details <true|false>"),
-                    "investment holdings --investment-account-id inv-001 --include-product-details true"));
+                    "investment holdings --investment-account-id inv-001 --include-product-details true"),
+            command(
+                    ":bash",
+                    "Run a host shell command through bash -lc.",
+                    List.of("<command>"),
+                    List.of(),
+                    ":bash pwd"),
+            command(
+                    ":exit",
+                    "Leave shell mode and close runtime resources.",
+                    List.of(),
+                    List.of(),
+                    ":exit"),
+            command(
+                    ":quit",
+                    "Leave shell mode and close runtime resources.",
+                    List.of(),
+                    List.of(),
+                    ":quit"));
 
     /**
      * @brief 私有构造（Private Constructor）；

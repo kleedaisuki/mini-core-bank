@@ -54,4 +54,44 @@ class MainTest {
         assertFalse(output.contains("java -jar mini-core-bank.jar gui"));
         assertFalse(output.contains("GUI commands:"));
     }
+
+    /**
+     * @brief 验证 one-shot 内建 Bash 命令可执行；
+     *        Verify one-shot built-in bash command can execute.
+     */
+    @Test
+    void shouldRunBuiltinBashCommandWithoutRuntimeBootstrap() {
+        final ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        final ByteArrayOutputStream errorBytes = new ByteArrayOutputStream();
+
+        final int exitCode = Main.run(
+                new String[] {":bash", "printf", "codex"},
+                new StringReader(""),
+                new PrintStream(outputBytes, true, StandardCharsets.UTF_8),
+                new PrintStream(errorBytes, true, StandardCharsets.UTF_8));
+
+        assertEquals(0, exitCode);
+        assertEquals("codex", outputBytes.toString(StandardCharsets.UTF_8));
+        assertEquals("", errorBytes.toString(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * @brief 验证 one-shot 内建退出命令直接成功返回；
+     *        Verify one-shot built-in exit command returns success directly.
+     */
+    @Test
+    void shouldRunBuiltinExitCommandWithoutRuntimeBootstrap() {
+        final ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        final ByteArrayOutputStream errorBytes = new ByteArrayOutputStream();
+
+        final int exitCode = Main.run(
+                new String[] {":exit"},
+                new StringReader(""),
+                new PrintStream(outputBytes, true, StandardCharsets.UTF_8),
+                new PrintStream(errorBytes, true, StandardCharsets.UTF_8));
+
+        assertEquals(0, exitCode);
+        assertEquals("", outputBytes.toString(StandardCharsets.UTF_8));
+        assertEquals("", errorBytes.toString(StandardCharsets.UTF_8));
+    }
 }

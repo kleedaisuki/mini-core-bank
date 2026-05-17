@@ -56,6 +56,33 @@ class CommandParserTest {
     }
 
     /**
+     * @brief 验证内建 Bash 命令接管剩余输入；
+     *        Verify built-in bash command owns the remaining input.
+     */
+    @Test
+    void shouldParseBuiltinBashAsRemainderCommand() {
+        final CommandParser parser = new CommandParser();
+
+        final ParsedCommand parsed = parser.parse(":bash echo hi --not-a-cli-option");
+
+        assertEquals(":bash", parsed.commandPath());
+        assertEquals(":bash echo hi --not-a-cli-option", parsed.rawInput());
+        assertTrue(parsed.options().isEmpty());
+    }
+
+    /**
+     * @brief 验证内建退出命令按单令牌命令解析；
+     *        Verify built-in exit commands parse as single-token commands.
+     */
+    @Test
+    void shouldParseBuiltinExitCommands() {
+        final CommandParser parser = new CommandParser();
+
+        assertEquals(":exit", parser.parse(":exit").commandPath());
+        assertEquals(":quit", parser.parse(":quit").commandPath());
+    }
+
+    /**
      * @brief 验证空输入抛出异常；
      *        Verify blank input throws exception.
      */

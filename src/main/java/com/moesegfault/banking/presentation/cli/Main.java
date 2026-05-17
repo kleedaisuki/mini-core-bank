@@ -2,6 +2,8 @@ package com.moesegfault.banking.presentation.cli;
 
 import com.moesegfault.banking.presentation.cli.bootstrap.CliBootstrap;
 import com.moesegfault.banking.presentation.cli.bootstrap.CliRuntime;
+import com.moesegfault.banking.presentation.cli.builtin.BashCliHandler;
+import com.moesegfault.banking.presentation.cli.builtin.BuiltinCliCommands;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -100,6 +102,12 @@ public final class Main {
         }
 
         try {
+            if (isBuiltinBashRequest(normalizedArgs)) {
+                return runBuiltinBashCommand(normalizedArgs, normalizedOutput);
+            }
+            if (isBuiltinExitRequest(normalizedArgs)) {
+                return EXIT_SUCCESS;
+            }
             if (isRemovedGuiRequest(normalizedArgs)) {
                 throw new IllegalArgumentException("GUI support has been removed. Use CLI commands or shell mode.");
             }
@@ -155,6 +163,28 @@ public final class Main {
     }
 
     /**
+     * @brief 判断是否内建 Bash 请求（Check Built-in Bash Request）；
+     *        Check whether arguments request the built-in bash command.
+     *
+     * @param args 命令行参数（Command-line arguments）。
+     * @return true 表示内建 Bash 请求（true when built-in bash is requested）。
+     */
+    private static boolean isBuiltinBashRequest(final String[] args) {
+        return args.length >= 1 && BuiltinCliCommands.isBash(args[0]);
+    }
+
+    /**
+     * @brief 判断是否内建退出请求（Check Built-in Exit Request）；
+     *        Check whether arguments request built-in exit.
+     *
+     * @param args 命令行参数（Command-line arguments）。
+     * @return true 表示内建退出请求（true when built-in exit is requested）。
+     */
+    private static boolean isBuiltinExitRequest(final String[] args) {
+        return args.length == 1 && BuiltinCliCommands.isExit(args[0]);
+    }
+
+    /**
      * @brief 判断是否已移除的 GUI 请求（Check Removed GUI Request）；
      *        Check whether arguments request removed GUI launch mode.
      *
@@ -199,6 +229,22 @@ public final class Main {
         }
         error.println("Unknown command for help: " + commandPath);
         return EXIT_USAGE_ERROR;
+    }
+
+    /**
+     * @brief 运行内建 Bash 命令（Run Built-in Bash Command）；
+     *        Run the built-in bash command without bootstrapping database resources.
+     *
+     * @param args   命令行参数（Command-line arguments）。
+     * @param output 标准输出流（Standard output stream）。
+     * @return 退出码（Exit code）。
+     */
+    private static int runBuiltinBashCommand(final String[] args, final PrintStream output) {
+        final String script = Arrays.stream(Arrays.copyOfRange(args, 1, args.length))
+                .reduce((left, right) -> left + " " + right)
+                .orElse("");
+        new BashCliHandler(output).runScript(script);
+        return EXIT_SUCCESS;
     }
 
     /**

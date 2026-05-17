@@ -67,6 +67,8 @@ public final class CliApplication {
         final PrintStream normalizedOutput = Objects.requireNonNull(output, "output must not be null");
         normalizedOutput.println("Usage: java -jar mini-core-bank.jar <command> [--option value]");
         normalizedOutput.println("       java -jar mini-core-bank.jar shell");
+        normalizedOutput.println("       :bash <command>");
+        normalizedOutput.println("       :exit | :quit");
         normalizedOutput.println("       help <command>");
         normalizedOutput.println();
         normalizedOutput.println("General:");
@@ -82,13 +84,13 @@ public final class CliApplication {
                             List.of(),
                             List.of(),
                             commandPath));
-            printCommandHelp(normalizedOutput, commandHelp);
+            printCommandSummary(normalizedOutput, commandHelp);
         });
         normalizedOutput.println();
         normalizedOutput.println("Shell commands:");
-        normalizedOutput.println("  help                 Show this detailed command reference.");
+        normalizedOutput.println("  help                 Show command summaries.");
         normalizedOutput.println("  help <command>       Show help for one command, for example: help customer register.");
-        normalizedOutput.println("  exit | quit          Leave shell mode and close runtime resources.");
+        normalizedOutput.println("  :exit | :quit        Leave shell mode and close runtime resources.");
     }
 
     /**
@@ -105,6 +107,21 @@ public final class CliApplication {
         final Optional<CliHelpCatalog.CommandHelp> commandHelp = CliHelpCatalog.find(normalizedCommandPath);
         commandHelp.ifPresent(help -> printCommandHelp(normalizedOutput, help));
         return commandHelp.isPresent();
+    }
+
+    /**
+     * @brief 打印命令摘要条目（Print Command Summary Entry）；
+     *        Print one command summary entry for the global help listing.
+     *
+     * @param output      输出流（Output stream）。
+     * @param commandHelp 命令帮助条目（Command help entry）。
+     */
+    private static void printCommandSummary(
+            final PrintStream output,
+            final CliHelpCatalog.CommandHelp commandHelp
+    ) {
+        output.println("  " + commandHelp.commandPath());
+        output.println("    " + commandHelp.summary());
     }
 
     /**

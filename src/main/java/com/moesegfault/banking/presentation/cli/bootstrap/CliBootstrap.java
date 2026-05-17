@@ -55,6 +55,9 @@ import com.moesegfault.banking.presentation.cli.account.ShowAccountCliHandler;
 import com.moesegfault.banking.presentation.cli.business.BusinessCliCommandRegistration;
 import com.moesegfault.banking.presentation.cli.business.ListBusinessTransactionsCliHandler;
 import com.moesegfault.banking.presentation.cli.business.ShowBusinessTransactionCliHandler;
+import com.moesegfault.banking.presentation.cli.builtin.BashCliHandler;
+import com.moesegfault.banking.presentation.cli.builtin.BuiltinCliCommandRegistration;
+import com.moesegfault.banking.presentation.cli.builtin.ExitCliHandler;
 import com.moesegfault.banking.presentation.cli.card.CardCliCommandRegistration;
 import com.moesegfault.banking.presentation.cli.card.IssueCreditCardCliHandler;
 import com.moesegfault.banking.presentation.cli.card.IssueDebitCardCliHandler;
@@ -133,6 +136,7 @@ public final class CliBootstrap {
         LedgerCliCommandRegistration.register(registry);
         BusinessCliCommandRegistration.register(registry);
         InvestmentCliCommandRegistration.register(registry);
+        BuiltinCliCommandRegistration.register(registry);
         return registry;
     }
 
@@ -274,6 +278,8 @@ public final class CliBootstrap {
                 eventPublisher)));
         putHandler(handlers, ShowHoldingCliHandler.class, new ShowHoldingCliHandler(
                 new ListHoldingsHandler(investmentRepository, accountRepository)));
+        putHandler(handlers, BashCliHandler.class, new BashCliHandler());
+        putHandler(handlers, ExitCliHandler.class, new ExitCliHandler());
         return Map.copyOf(handlers);
     }
 

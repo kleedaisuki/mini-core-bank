@@ -1,5 +1,6 @@
 package com.moesegfault.banking.presentation.cli;
 
+import com.moesegfault.banking.presentation.cli.builtin.BuiltinExitRequested;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -110,16 +111,16 @@ public final class CliShell {
      * @return 退出码（Exit code）。
      */
     public int run() {
-        output.println("Mini Core Bank CLI shell. Type help for commands, exit to quit.");
+        output.println("Mini Core Bank CLI shell. Type help for commands, :exit to quit.");
         try {
             String line = readLine();
             while (line != null) {
                 final String commandLine = line.trim();
-                if (!commandLine.isEmpty() && shouldExit(commandLine)) {
-                    return EXIT_SUCCESS;
-                }
                 if (!commandLine.isEmpty()) {
-                    handleLine(commandLine);
+                    final boolean shouldContinue = handleLine(commandLine);
+                    if (!shouldContinue) {
+                        return EXIT_SUCCESS;
+                    }
                 }
                 line = readLine();
             }
@@ -148,31 +149,23 @@ public final class CliShell {
      *        Handle one command line while keeping the shell alive after command failures.
      *
      * @param commandLine 命令行（Command line）。
+     * @return true 表示继续 Shell 循环（true when shell loop should continue）。
      */
-    private void handleLine(final String commandLine) {
+    private boolean handleLine(final String commandLine) {
         if (shouldPrintHelp(commandLine)) {
             printHelp(commandLine);
-            return;
+            return true;
         }
         try {
             application.execute(commandLine);
+        } catch (BuiltinExitRequested exception) {
+            return false;
         } catch (IllegalArgumentException exception) {
             error.println(exception.getMessage());
         } catch (Exception exception) {
             error.println("CLI command failed: " + exception.getMessage());
         }
-    }
-
-    /**
-     * @brief 判断是否退出命令（Check Exit Command）；
-     *        Check whether command requests shell termination.
-     *
-     * @param commandLine 命令行（Command line）。
-     * @return true 表示退出（true when command requests exit）。
-     */
-    private static boolean shouldExit(final String commandLine) {
-        final String normalized = commandLine.toLowerCase(Locale.ROOT);
-        return "exit".equals(normalized) || "quit".equals(normalized);
+        return true;
     }
 
     /**

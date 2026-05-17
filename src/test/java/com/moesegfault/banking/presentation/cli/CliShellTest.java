@@ -1,8 +1,11 @@
 package com.moesegfault.banking.presentation.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.moesegfault.banking.presentation.cli.builtin.BuiltinCliCommands;
+import com.moesegfault.banking.presentation.cli.builtin.ExitCliHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
@@ -25,16 +28,20 @@ class CliShellTest {
     void shouldExecuteMultipleCommandsBeforeExit() {
         final CommandRegistry registry = new CommandRegistry();
         registry.register("ping", CountingHandler.class);
+        registry.register(BuiltinCliCommands.EXIT, ExitCliHandler.class);
         final CountingHandler handler = new CountingHandler();
+        final ExitCliHandler exitHandler = new ExitCliHandler();
         final CliApplication application = new CliApplication(
                 new CommandParser(),
                 registry,
-                new CommandDispatcher(registry, handlerType -> Map.of(CountingHandler.class, handler).get(handlerType)));
+                new CommandDispatcher(registry, handlerType -> Map.of(
+                        CountingHandler.class, handler,
+                        ExitCliHandler.class, exitHandler).get(handlerType)));
         final ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
         final ByteArrayOutputStream errorBytes = new ByteArrayOutputStream();
         final CliShell shell = new CliShell(
                 application,
-                new StringReader("ping\nping\nexit\n"),
+                new StringReader("ping\nping\n:exit\n"),
                 new PrintStream(outputBytes, true, StandardCharsets.UTF_8),
                 new PrintStream(errorBytes, true, StandardCharsets.UTF_8),
                 "test> ");
@@ -48,22 +55,65 @@ class CliShellTest {
     }
 
     /**
-     * @brief 验证 help 会打印详细命令说明；
-     *        Verify help prints detailed command descriptions.
+     * @brief 验证全局 help 仅打印命令摘要；
+     *        Verify global help prints command summaries only.
      */
     @Test
-    void shouldPrintDetailedHelp() {
+    void shouldPrintSummaryOnlyGlobalHelp() {
         final CommandRegistry registry = new CommandRegistry();
         registry.register("customer register", CountingHandler.class);
+        registry.register(BuiltinCliCommands.EXIT, ExitCliHandler.class);
         final CliApplication application = new CliApplication(
                 new CommandParser(),
                 registry,
-                new CommandDispatcher(registry, handlerType -> new CountingHandler()));
+                new CommandDispatcher(registry, handlerType -> {
+                    if (ExitCliHandler.class.equals(handlerType)) {
+                        return new ExitCliHandler();
+                    }
+                    return new CountingHandler();
+                }));
         final ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
         final ByteArrayOutputStream errorBytes = new ByteArrayOutputStream();
         final CliShell shell = new CliShell(
                 application,
-                new StringReader("help\nhelp customer register\nexit\n"),
+                new StringReader("help\n:exit\n"),
+                new PrintStream(outputBytes, true, StandardCharsets.UTF_8),
+                new PrintStream(errorBytes, true, StandardCharsets.UTF_8),
+                "test> ");
+
+        final int exitCode = shell.run();
+        final String output = outputBytes.toString(StandardCharsets.UTF_8);
+
+        assertEquals(CliShell.EXIT_SUCCESS, exitCode);
+        assertTrue(output.contains("Register a new customer profile"));
+        assertFalse(output.contains("--id-type <type>"));
+        assertFalse(output.contains("Example: customer register"));
+        assertEquals("", errorBytes.toString(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * @brief 验证单命令 help 会打印详细命令说明；
+     *        Verify command-specific help prints detailed command descriptions.
+     */
+    @Test
+    void shouldPrintDetailedCommandHelp() {
+        final CommandRegistry registry = new CommandRegistry();
+        registry.register("customer register", CountingHandler.class);
+        registry.register(BuiltinCliCommands.EXIT, ExitCliHandler.class);
+        final CliApplication application = new CliApplication(
+                new CommandParser(),
+                registry,
+                new CommandDispatcher(registry, handlerType -> {
+                    if (ExitCliHandler.class.equals(handlerType)) {
+                        return new ExitCliHandler();
+                    }
+                    return new CountingHandler();
+                }));
+        final ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        final ByteArrayOutputStream errorBytes = new ByteArrayOutputStream();
+        final CliShell shell = new CliShell(
+                application,
+                new StringReader("help customer register\n:exit\n"),
                 new PrintStream(outputBytes, true, StandardCharsets.UTF_8),
                 new PrintStream(errorBytes, true, StandardCharsets.UTF_8),
                 "test> ");
