@@ -67,6 +67,7 @@ public final class CliApplication {
         final PrintStream normalizedOutput = Objects.requireNonNull(output, "output must not be null");
         normalizedOutput.println("Usage: java -jar mini-core-bank.jar <command> [--option value]");
         normalizedOutput.println("       java -jar mini-core-bank.jar shell");
+        normalizedOutput.println("       java -jar mini-core-bank.jar gui [--toolkit swing]");
         normalizedOutput.println("       help <command>");
         normalizedOutput.println();
         normalizedOutput.println("General:");
@@ -89,6 +90,10 @@ public final class CliApplication {
         normalizedOutput.println("  help                 Show this detailed command reference.");
         normalizedOutput.println("  help <command>       Show help for one command, for example: help customer register.");
         normalizedOutput.println("  exit | quit          Leave shell mode and close runtime resources.");
+        normalizedOutput.println();
+        normalizedOutput.println("GUI commands:");
+        normalizedOutput.println("  gui                  Launch the desktop GUI with the default Swing toolkit.");
+        normalizedOutput.println("  gui --toolkit swing  Launch the desktop GUI with an explicit toolkit.");
     }
 
     /**
