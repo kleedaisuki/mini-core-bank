@@ -6,6 +6,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
 import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -15,7 +16,7 @@ import java.util.function.Consumer;
  * @brief 客户详情页面视图（Show Customer View），负责查询表单与详情渲染；
  *        Show-customer view handling query form and rendered customer details.
  */
-public final class ShowCustomerView implements GuiView<ShowCustomerModel>, ModelChangeListener {
+public final class ShowCustomerView implements GuiView<ShowCustomerModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 查询表单（Query Form）；

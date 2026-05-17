@@ -7,6 +7,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.ErrorDialogView;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.SuccessDialogView;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,8 @@ import java.util.function.Consumer;
  * @brief 开立储蓄账户页面视图（Open Savings Account View），负责表单渲染并转发提交事件；
  *        Open-savings-account page view that renders form state and forwards submit events.
  */
-public final class OpenSavingsAccountView implements GuiView<OpenSavingsAccountModel>, ModelChangeListener {
+public final class OpenSavingsAccountView
+        implements GuiView<OpenSavingsAccountModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 表单视图端口（Form View Port）;

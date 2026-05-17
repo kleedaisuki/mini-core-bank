@@ -6,18 +6,28 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
 import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.TableView;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
 /**
  * @brief 客户列表页面视图（List Customers View），负责筛选表单、表格渲染与行选择事件；
  *        Customer-list page view handling filter form, table rendering, and row selection events.
  */
-public final class ListCustomersView implements GuiView<ListCustomersModel>, ModelChangeListener {
+public final class ListCustomersView implements GuiView<ListCustomersModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 表格列定义（Table Column Definitions）；
@@ -25,11 +35,29 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
      */
     private static final List<String> COLUMNS = List.of(
             "customer_id",
-            "id_type",
-            "id_number",
-            "issuing_region",
             "mobile_phone",
+            "id_type",
+            "issuing_region",
+            "id_number",
             "customer_status");
+
+    /**
+     * @brief 普通状态颜色（Neutral Status Color）；
+     *        Neutral color used for informational status text.
+     */
+    private static final Color STATUS_NEUTRAL = new Color(80, 88, 99);
+
+    /**
+     * @brief 错误状态颜色（Error Status Color）；
+     *        Error color used for failed query status text.
+     */
+    private static final Color STATUS_ERROR = new Color(176, 42, 55);
+
+    /**
+     * @brief 成功状态颜色（Success Status Color）；
+     *        Success color used for loaded-result status text.
+     */
+    private static final Color STATUS_SUCCESS = new Color(22, 101, 52);
 
     /**
      * @brief 筛选表单（Filter Form）；
@@ -42,6 +70,24 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
      *        Customer table view.
      */
     private final TableView tableView;
+
+    /**
+     * @brief 页面根面板（Page Root Panel）；
+     *        Root panel composing the filter form and customer table.
+     */
+    private final JPanel rootPanel = new JPanel(new BorderLayout(8, 8));
+
+    /**
+     * @brief 状态标签（Status Label）；
+     *        Status label showing query progress and empty-result feedback.
+     */
+    private final JLabel statusLabel = new JLabel("Ready");
+
+    /**
+     * @brief 根面板配置标记（Root Panel Configured Flag）；
+     *        Whether the Swing root panel has been configured.
+     */
+    private boolean rootPanelConfigured;
 
     /**
      * @brief 绑定模型（Bound Model）；
@@ -74,6 +120,7 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
         this.tableView = Objects.requireNonNull(tableView, "tableView must not be null");
 
         this.filterFormView.setFieldOrder(List.of(ListCustomersModel.FIELD_MOBILE_PHONE));
+        this.filterFormView.setSubmitLabel("Search");
         this.filterFormView.onSubmit(() -> {
             final Map<String, String> formValues = this.filterFormView.values();
             eventHandler.accept(new ViewEvent(
@@ -136,8 +183,9 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
         final ListCustomersModel normalizedModel = requireModel();
         filterFormView.setValues(Map.of(ListCustomersModel.FIELD_MOBILE_PHONE, normalizedModel.mobilePhoneFilter()));
         tableView.setRows(toRows(normalizedModel.customers()));
+        renderStatus(normalizedModel);
 
-        renderedMessage = normalizedModel.errorMessage().orElse(null);
+        renderedMessage = statusLabel.getText();
     }
 
     /**
@@ -170,6 +218,15 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object component() {
+        configureRootPanel();
+        return rootPanel;
+    }
+
+    /**
      * @brief 返回最近渲染消息（Return Last Rendered Message）；
      *        Return last rendered message.
      *
@@ -191,14 +248,60 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
         for (CustomerResult customer : customers) {
             final List<String> row = new ArrayList<>();
             row.add(customer.customerId());
-            row.add(customer.idType());
-            row.add(customer.idNumber());
-            row.add(customer.issuingRegion());
             row.add(customer.mobilePhone());
+            row.add(customer.idType());
+            row.add(customer.issuingRegion());
+            row.add(customer.idNumber());
             row.add(customer.customerStatus());
             rows.add(List.copyOf(row));
         }
         return List.copyOf(rows);
+    }
+
+    /**
+     * @brief 渲染查询状态（Render Query Status）；
+     *        Render feedback for loading, empty, success, and error states.
+     *
+     * @param currentModel 当前模型（Current model）。
+     */
+    private void renderStatus(final ListCustomersModel currentModel) {
+        if (currentModel.loading()) {
+            setStatus("Searching customers...", STATUS_NEUTRAL);
+            return;
+        }
+
+        if (currentModel.errorMessage().isPresent()) {
+            setStatus("Query failed: " + currentModel.errorMessage().orElseThrow(), STATUS_ERROR);
+            return;
+        }
+
+        final int customerCount = currentModel.customers().size();
+        if (customerCount == 0) {
+            final String filter = currentModel.mobilePhoneFilter().trim();
+            if (filter.isEmpty()) {
+                setStatus("No customers found. Register a customer first, then refresh this list.", STATUS_NEUTRAL);
+                return;
+            }
+            setStatus("No customers match mobile phone " + filter + ".", STATUS_NEUTRAL);
+            return;
+        }
+
+        final String suffix = currentModel.selectedCustomerId()
+                .map(customerId -> " Selected " + customerId + ".")
+                .orElse("");
+        setStatus("Loaded " + customerCount + " customer" + (customerCount == 1 ? "" : "s") + "." + suffix, STATUS_SUCCESS);
+    }
+
+    /**
+     * @brief 更新状态标签（Update Status Label）；
+     *        Update status-label text and color.
+     *
+     * @param text 状态文本（Status text）。
+     * @param color 状态颜色（Status color）。
+     */
+    private void setStatus(final String text, final Color color) {
+        statusLabel.setText(Objects.requireNonNull(text, "text must not be null"));
+        statusLabel.setForeground(Objects.requireNonNull(color, "color must not be null"));
     }
 
     /**
@@ -212,5 +315,70 @@ public final class ListCustomersView implements GuiView<ListCustomersModel>, Mod
             throw new IllegalStateException("ListCustomersView model must be bound before rendering");
         }
         return model;
+    }
+
+    /**
+     * @brief 配置根面板（Configure Root Panel）；
+     *        Configure the Swing root panel lazily when the runtime requests a native component.
+     */
+    private void configureRootPanel() {
+        if (rootPanelConfigured) {
+            return;
+        }
+
+        rootPanel.setBorder(new EmptyBorder(18, 18, 16, 18));
+        rootPanel.setBackground(new Color(246, 248, 250));
+
+        final JLabel titleLabel = new JLabel("Customers");
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20.0F));
+
+        final JLabel descriptionLabel = new JLabel("Customer directory");
+        descriptionLabel.setForeground(STATUS_NEUTRAL);
+
+        final JPanel titlePanel = new JPanel();
+        titlePanel.setOpaque(false);
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.add(titleLabel);
+        titlePanel.add(descriptionLabel);
+
+        final JPanel queryPanel = new JPanel(new BorderLayout());
+        queryPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(208, 215, 222)),
+                new EmptyBorder(10, 10, 10, 10)));
+        queryPanel.setBackground(Color.WHITE);
+        queryPanel.add(requireComponent(filterFormView.component(), "filterFormView.component"), BorderLayout.CENTER);
+
+        final JPanel topPanel = new JPanel(new BorderLayout(0, 12));
+        topPanel.setOpaque(false);
+        topPanel.add(titlePanel, BorderLayout.NORTH);
+        topPanel.add(queryPanel, BorderLayout.CENTER);
+
+        final JComponent tableComponent = requireComponent(tableView.component(), "tableView.component");
+        tableComponent.setBorder(BorderFactory.createLineBorder(new Color(208, 215, 222)));
+
+        statusLabel.setBorder(new EmptyBorder(8, 2, 0, 2));
+        statusLabel.setForeground(STATUS_NEUTRAL);
+
+        rootPanel.add(topPanel, BorderLayout.NORTH);
+        rootPanel.add(tableComponent, BorderLayout.CENTER);
+        rootPanel.add(statusLabel, BorderLayout.SOUTH);
+        rootPanelConfigured = true;
+    }
+
+    /**
+     * @brief 校验并转换原生组件（Require Native Component）；
+     *        Validate and cast a child native component for Swing composition.
+     *
+     * @param component 原始组件（Raw component）。
+     * @param label 组件标签（Component label）。
+     * @return Swing 组件（Swing component）。
+     */
+    private static JComponent requireComponent(final Object component, final String label) {
+        final Object normalized = Objects.requireNonNull(component, label + " must not be null");
+        if (!(normalized instanceof JComponent swingComponent)) {
+            throw new IllegalArgumentException(
+                    label + " must be a Swing JComponent but was: " + normalized.getClass().getName());
+        }
+        return swingComponent;
     }
 }

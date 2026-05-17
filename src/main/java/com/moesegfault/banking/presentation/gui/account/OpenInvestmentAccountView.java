@@ -7,6 +7,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.ErrorDialogView;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.SuccessDialogView;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,8 @@ import java.util.function.Consumer;
  * @brief 开立投资账户页面视图（Open Investment Account View），负责投资开户表单渲染和事件转发；
  *        Open-investment-account page view for form rendering and event forwarding.
  */
-public final class OpenInvestmentAccountView implements GuiView<OpenInvestmentAccountModel>, ModelChangeListener {
+public final class OpenInvestmentAccountView
+        implements GuiView<OpenInvestmentAccountModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 表单视图端口（Form View Port）;

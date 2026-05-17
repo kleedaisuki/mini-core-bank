@@ -7,6 +7,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.ErrorDialogView;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.SuccessDialogView;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.function.Consumer;
  * @brief 开立外汇账户页面视图（Open FX Account View），负责 FX 开户表单渲染和事件转发；
  *        Open-FX-account page view for FX form rendering and event forwarding.
  */
-public final class OpenFxAccountView implements GuiView<OpenFxAccountModel>, ModelChangeListener {
+public final class OpenFxAccountView implements GuiView<OpenFxAccountModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 表单视图端口（Form View Port）;

@@ -6,8 +6,10 @@ import com.moesegfault.banking.presentation.gui.UiThreadScheduler;
 import com.moesegfault.banking.presentation.gui.mvc.GuiModel;
 import com.moesegfault.banking.presentation.gui.mvc.GuiView;
 import com.moesegfault.banking.presentation.gui.view.MainWindowView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.swing.JComponent;
 
 /**
  * @brief Swing GUI 运行时（Swing GUI Runtime），管理主窗口生命周期与页面挂载；
@@ -88,6 +90,7 @@ public final class SwingGuiRuntime implements GuiRuntime {
             mountedView = nextView;
             mountedView.mount();
             mountedView.render();
+            mountNativeComponent(mountedView);
         });
     }
 
@@ -115,5 +118,27 @@ public final class SwingGuiRuntime implements GuiRuntime {
             }
             mainWindowView.close();
         });
+    }
+
+    /**
+     * @brief 挂载页面原生组件（Mount Page Native Component）；
+     *        Mount the page native component when the view exposes one.
+     *
+     * @param view 页面视图（Page view）。
+     */
+    private void mountNativeComponent(final GuiView<? extends GuiModel> view) {
+        if (!(view instanceof NativeComponentView nativeComponentView)) {
+            return;
+        }
+
+        final Object component = Objects.requireNonNull(
+                nativeComponentView.component(),
+                "native component view must not return null component");
+        if (!(component instanceof JComponent swingComponent)) {
+            throw new IllegalArgumentException(
+                    "SwingGuiRuntime expects JComponent for native component view: "
+                            + component.getClass().getName());
+        }
+        mainWindowView.setContent(swingComponent);
     }
 }

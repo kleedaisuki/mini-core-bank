@@ -5,6 +5,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ModelChangeEvent;
 import com.moesegfault.banking.presentation.gui.mvc.ModelChangeListener;
 import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -13,7 +14,8 @@ import java.util.function.Consumer;
  * @brief 客户注册页面视图（Register Customer View），负责表单渲染与提交事件转发；
  *        Register-customer page view responsible for form rendering and submit-event forwarding.
  */
-public final class RegisterCustomerView implements GuiView<RegisterCustomerModel>, ModelChangeListener {
+public final class RegisterCustomerView
+        implements GuiView<RegisterCustomerModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 注册表单视图（Register Form View）；

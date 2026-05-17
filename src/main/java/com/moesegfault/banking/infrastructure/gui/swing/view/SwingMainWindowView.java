@@ -10,6 +10,8 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 
 /**
@@ -65,6 +67,7 @@ public final class SwingMainWindowView implements MainWindowView {
      *        Construct Swing main window view.
      */
     public SwingMainWindowView() {
+        configureLookAndFeel();
         this.rootPanel = new JPanel(new BorderLayout());
         this.contentPanel = new JPanel(new BorderLayout());
         this.rootPanel.add(contentPanel, BorderLayout.CENTER);
@@ -163,6 +166,27 @@ public final class SwingMainWindowView implements MainWindowView {
     public void close() {
         if (frame != null) {
             frame.dispose();
+        }
+    }
+
+    /**
+     * @brief 配置外观主题（Configure Look And Feel）；
+     *        Configure a readable cross-platform Swing look and feel before components are created.
+     */
+    private static void configureLookAndFeel() {
+        try {
+            for (UIManager.LookAndFeelInfo lookAndFeelInfo : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(lookAndFeelInfo.getName())) {
+                    UIManager.setLookAndFeel(lookAndFeelInfo.getClassName());
+                    return;
+                }
+            }
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | UnsupportedLookAndFeelException ignored) {
+            // 平台无法加载首选主题时保留 Swing 默认外观；keep Swing's default when the preferred theme is unavailable.
         }
     }
 }

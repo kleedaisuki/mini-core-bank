@@ -38,6 +38,7 @@ import com.moesegfault.banking.infrastructure.gui.swing.SwingGuiRuntime;
 import com.moesegfault.banking.infrastructure.gui.swing.view.SwingEmptyStateView;
 import com.moesegfault.banking.infrastructure.gui.swing.view.SwingErrorDialogView;
 import com.moesegfault.banking.infrastructure.gui.swing.view.SwingFormView;
+import com.moesegfault.banking.infrastructure.gui.swing.view.SwingMainMenuView;
 import com.moesegfault.banking.infrastructure.gui.swing.view.SwingSuccessDialogView;
 import com.moesegfault.banking.infrastructure.gui.swing.view.SwingTableView;
 import com.moesegfault.banking.infrastructure.id.IdGenerator;
@@ -45,13 +46,15 @@ import com.moesegfault.banking.infrastructure.migration.FlywayMigrationRunner;
 import com.moesegfault.banking.infrastructure.persistence.Repository;
 import com.moesegfault.banking.infrastructure.persistence.jdbc.JdbcRepository;
 import com.moesegfault.banking.infrastructure.persistence.transaction.DbTransactionManager;
-import com.moesegfault.banking.presentation.gui.BankingGui;
+import com.moesegfault.banking.presentation.gui.GuiApplication;
 import com.moesegfault.banking.presentation.gui.GuiBootstrap;
 import com.moesegfault.banking.presentation.gui.GuiContext;
 import com.moesegfault.banking.presentation.gui.GuiExceptionHandler;
 import com.moesegfault.banking.presentation.gui.GuiModule;
+import com.moesegfault.banking.presentation.gui.GuiPageId;
 import com.moesegfault.banking.presentation.gui.GuiRuntime;
 import com.moesegfault.banking.presentation.gui.GuiToolkitType;
+import com.moesegfault.banking.presentation.gui.account.AccountGuiPageIds;
 import com.moesegfault.banking.presentation.gui.account.AccountGuiModule;
 import com.moesegfault.banking.presentation.gui.account.ListAccountsPageFactory;
 import com.moesegfault.banking.presentation.gui.account.OpenFxAccountPageFactory;
@@ -72,9 +75,14 @@ import com.moesegfault.banking.presentation.gui.credit.ShowStatementPageFactory;
 import com.moesegfault.banking.presentation.gui.customer.CustomerGuiModule;
 import com.moesegfault.banking.presentation.gui.customer.CustomerGuiPageIds;
 import com.moesegfault.banking.presentation.gui.investment.InvestmentGuiModule;
+import com.moesegfault.banking.presentation.gui.ledger.LedgerGuiPageIds;
 import com.moesegfault.banking.presentation.gui.ledger.LedgerGuiModule;
 import com.moesegfault.banking.presentation.gui.ledger.ShowBalancePageFactory;
 import com.moesegfault.banking.presentation.gui.ledger.ShowEntriesPageFactory;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
@@ -102,7 +110,9 @@ public final class DefaultGuiCliLauncher implements GuiCliLauncher {
                     GuiContext::new,
                     CustomerGuiPageIds.LIST_CUSTOMERS,
                     createModules(repository, appConfig.idGenerator(), guiRuntime));
-            new BankingGui(guiBootstrap).launch(normalizedToolkitType);
+            final GuiApplication application = guiBootstrap.bootstrap(normalizedToolkitType);
+            installNavigationBar(application, guiRuntime);
+            application.start();
             registerShutdownClose(appConfig.dataSource());
             success = true;
         } finally {
@@ -124,6 +134,42 @@ public final class DefaultGuiCliLauncher implements GuiCliLauncher {
             case SWING -> new SwingGuiRuntime();
             case JAVAFX -> throw new IllegalArgumentException("Unsupported GUI toolkit: JAVAFX. Available toolkit: SWING");
         };
+    }
+
+    /**
+     * @brief 安装导航栏（Install Navigation Bar）；
+     *        Install the Swing menu bar used for page navigation.
+     *
+     * @param application GUI 应用（GUI application）。
+     * @param guiRuntime GUI 运行时（GUI runtime）。
+     */
+    private static void installNavigationBar(final GuiApplication application, final GuiRuntime guiRuntime) {
+        final GuiApplication normalizedApplication = Objects.requireNonNull(application, "application must not be null");
+        final GuiRuntime normalizedRuntime = Objects.requireNonNull(guiRuntime, "guiRuntime must not be null");
+        final Map<String, GuiPageId> navigationItems = navigationItems();
+        final SwingMainMenuView mainMenuView = new SwingMainMenuView();
+        mainMenuView.setItems(List.copyOf(navigationItems.keySet()));
+        mainMenuView.onItemSelected(itemId -> normalizedApplication.navigator().navigateTo(
+                Objects.requireNonNull(navigationItems.get(itemId), "Unknown GUI navigation item: " + itemId)));
+        normalizedRuntime.mainWindow().setMainMenu(mainMenuView);
+    }
+
+    /**
+     * @brief 构造导航项（Build Navigation Items）；
+     *        Build stable navigation item labels mapped to page identifiers.
+     *
+     * @return 导航项映射（Navigation item map）。
+     */
+    private static Map<String, GuiPageId> navigationItems() {
+        final Map<String, GuiPageId> items = new LinkedHashMap<>();
+        items.put("Customers/List Customers", CustomerGuiPageIds.LIST_CUSTOMERS);
+        items.put("Customers/Register Customer", CustomerGuiPageIds.REGISTER_CUSTOMER);
+        items.put("Accounts/Open Savings Account", AccountGuiPageIds.OPEN_SAVINGS_ACCOUNT);
+        items.put("Accounts/Open FX Account", AccountGuiPageIds.OPEN_FX_ACCOUNT);
+        items.put("Accounts/Open Investment Account", AccountGuiPageIds.OPEN_INVESTMENT_ACCOUNT);
+        items.put("Ledger/Show Balance", LedgerGuiPageIds.SHOW_BALANCE);
+        items.put("Ledger/Show Entries", LedgerGuiPageIds.SHOW_ENTRIES);
+        return Collections.unmodifiableMap(items);
     }
 
     /**

@@ -57,6 +57,15 @@ public interface FormView {
     void onSubmit(Runnable submitAction);
 
     /**
+     * @brief 设置提交按钮文案（Set Submit Button Label）；
+     *        Set submit-button label when the toolkit supports it.
+     *
+     * @param label 按钮文案（Button label）。
+     */
+    default void setSubmitLabel(final String label) {
+    }
+
+    /**
      * @brief 获取 toolkit 原生组件（Get Toolkit-native Component）；
      *        Return underlying toolkit component object.
      *

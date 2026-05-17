@@ -8,6 +8,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.EmptyStateView;
 import com.moesegfault.banking.presentation.gui.view.ErrorDialogView;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.TableView;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.function.Consumer;
  * @brief 账户详情页面视图（Show Account View），负责查询输入、结果表格与空态提示渲染；
  *        Show-account page view that renders query form, result table, and empty-state hints.
  */
-public final class ShowAccountView implements GuiView<ShowAccountModel>, ModelChangeListener {
+public final class ShowAccountView implements GuiView<ShowAccountModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 查询表单视图端口（Query Form View Port）;

@@ -1,18 +1,23 @@
 package com.moesegfault.banking.infrastructure.gui.swing.view;
 
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 
 /**
  * @brief Swing 表单视图（Swing Form View），基于 GridBagLayout 构建动态字段表单；
@@ -25,6 +30,18 @@ public final class SwingFormView implements FormView {
      *        Root form panel.
      */
     private final JPanel panel = new JPanel(new GridBagLayout());
+
+    /**
+     * @brief 标签颜色（Label Color）；
+     *        Color used by field labels.
+     */
+    private static final Color LABEL_COLOR = new Color(36, 41, 47);
+
+    /**
+     * @brief 错误颜色（Error Color）；
+     *        Color used by field validation messages.
+     */
+    private static final Color ERROR_COLOR = new Color(176, 42, 55);
 
     /**
      * @brief 字段输入组件映射（Field Input Map）；
@@ -56,6 +73,10 @@ public final class SwingFormView implements FormView {
      *        Construct Swing form view.
      */
     public SwingFormView() {
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        submitButton.setPreferredSize(new Dimension(96, 30));
         submitButton.addActionListener(event -> submitAction.run());
         rebuildPanel();
     }
@@ -73,7 +94,7 @@ public final class SwingFormView implements FormView {
             final String nonNullFieldName = Objects.requireNonNull(fieldName, "fieldName must not be null");
             fieldInputs.put(nonNullFieldName, new JTextField(24));
             final JLabel errorLabel = new JLabel(" ", SwingConstants.LEFT);
-            errorLabel.setForeground(new java.awt.Color(180, 0, 0));
+            errorLabel.setForeground(ERROR_COLOR);
             fieldErrors.put(nonNullFieldName, errorLabel);
         }
         rebuildPanel();
@@ -139,6 +160,14 @@ public final class SwingFormView implements FormView {
      * {@inheritDoc}
      */
     @Override
+    public void setSubmitLabel(final String label) {
+        submitButton.setText(Objects.requireNonNull(label, "label must not be null"));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Object component() {
         return panel;
     }
@@ -156,40 +185,115 @@ public final class SwingFormView implements FormView {
             final JTextField input = entry.getValue();
             final JLabel errorLabel = fieldErrors.get(fieldName);
 
-            panel.add(new JLabel(fieldName + ':'), constraints(0, row, 1, 0.0));
-            panel.add(input, constraints(1, row, 1, 1.0));
+            final JLabel fieldLabel = new JLabel(displayFieldName(fieldName));
+            fieldLabel.setForeground(LABEL_COLOR);
+
+            input.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(208, 215, 222)),
+                    new EmptyBorder(4, 8, 4, 8)));
+
+            panel.add(fieldLabel, fieldConstraints(0, row));
+            panel.add(input, inputConstraints(1, row));
             row++;
-            panel.add(errorLabel, constraints(1, row, 1, 1.0));
+            panel.add(errorLabel, errorConstraints(1, row));
             row++;
         }
 
-        panel.add(submitButton, constraints(1, row, 1, 0.0));
+        panel.add(submitButton, buttonConstraints(1, row));
         panel.revalidate();
         panel.repaint();
     }
 
     /**
-     * @brief 构造 GridBag 约束（Build GridBag Constraints）；
-     *        Build a GridBagConstraints instance for one cell.
+     * @brief 构造字段标签约束（Build Field-label Constraints）；
+     *        Build constraints for a field label.
      *
      * @param gridX 列坐标（Grid x）。
      * @param gridY 行坐标（Grid y）。
-     * @param gridWidth 跨列宽度（Grid width）。
-     * @param weightX 横向权重（Horizontal weight）。
      * @return GridBagConstraints（布局约束）。
      */
-    private static GridBagConstraints constraints(final int gridX,
-                                                  final int gridY,
-                                                  final int gridWidth,
-                                                  final double weightX) {
+    private static GridBagConstraints fieldConstraints(final int gridX, final int gridY) {
         final GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = gridX;
         constraints.gridy = gridY;
-        constraints.gridwidth = gridWidth;
-        constraints.weightx = weightX;
+        constraints.weightx = 0.0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.anchor = GridBagConstraints.NORTHWEST;
+        constraints.insets = new Insets(5, 0, 2, 12);
+        return constraints;
+    }
+
+    /**
+     * @brief 构造输入框约束（Build Input Constraints）；
+     *        Build constraints for a text input.
+     *
+     * @param gridX 列坐标（Grid x）。
+     * @param gridY 行坐标（Grid y）。
+     * @return GridBagConstraints（布局约束）。
+     */
+    private static GridBagConstraints inputConstraints(final int gridX, final int gridY) {
+        final GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = gridX;
+        constraints.gridy = gridY;
+        constraints.weightx = 1.0;
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.anchor = GridBagConstraints.NORTHWEST;
-        constraints.insets = new Insets(6, 6, 2, 6);
+        constraints.insets = new Insets(0, 0, 2, 12);
         return constraints;
+    }
+
+    /**
+     * @brief 构造错误提示约束（Build Error-label Constraints）；
+     *        Build constraints for a field error label.
+     *
+     * @param gridX 列坐标（Grid x）。
+     * @param gridY 行坐标（Grid y）。
+     * @return GridBagConstraints（布局约束）。
+     */
+    private static GridBagConstraints errorConstraints(final int gridX, final int gridY) {
+        final GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = gridX;
+        constraints.gridy = gridY;
+        constraints.weightx = 1.0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.anchor = GridBagConstraints.NORTHWEST;
+        constraints.insets = new Insets(0, 0, 4, 12);
+        return constraints;
+    }
+
+    /**
+     * @brief 构造按钮约束（Build Button Constraints）；
+     *        Build constraints for the submit button.
+     *
+     * @param gridX 列坐标（Grid x）。
+     * @param gridY 行坐标（Grid y）。
+     * @return GridBagConstraints（布局约束）。
+     */
+    private static GridBagConstraints buttonConstraints(final int gridX, final int gridY) {
+        final GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = gridX;
+        constraints.gridy = gridY;
+        constraints.weightx = 1.0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.anchor = GridBagConstraints.NORTHEAST;
+        constraints.insets = new Insets(4, 0, 0, 12);
+        return constraints;
+    }
+
+    /**
+     * @brief 格式化字段名（Format Field Name）；
+     *        Format a canonical field name for display.
+     *
+     * @param fieldName 字段名（Field name）。
+     * @return 展示字段名（Display field name）。
+     */
+    private static String displayFieldName(final String fieldName) {
+        final String normalized = Objects.requireNonNull(fieldName, "fieldName must not be null")
+                .replace('_', ' ')
+                .trim();
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        return normalized.substring(0, 1).toUpperCase(Locale.ROOT) + normalized.substring(1) + ':';
     }
 }

@@ -1,10 +1,13 @@
 package com.moesegfault.banking.infrastructure.gui.swing.view;
 
 import com.moesegfault.banking.presentation.gui.view.TableView;
+import java.awt.Color;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
@@ -54,6 +57,16 @@ public final class SwingTableView implements TableView {
      */
     public SwingTableView() {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setRowHeight(28);
+        table.setFillsViewportHeight(true);
+        table.setGridColor(new Color(225, 228, 232));
+        table.setSelectionBackground(new Color(218, 237, 255));
+        table.setSelectionForeground(new Color(36, 41, 47));
+        table.setAutoCreateRowSorter(true);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setBackground(new Color(246, 248, 250));
+        table.getTableHeader().setForeground(new Color(36, 41, 47));
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(208, 215, 222)));
     }
 
     /**
@@ -62,7 +75,7 @@ public final class SwingTableView implements TableView {
     @Override
     public void setColumns(final List<String> columns) {
         final List<String> nonNullColumns = List.copyOf(Objects.requireNonNull(columns, "columns must not be null"));
-        tableModel.setColumnIdentifiers(nonNullColumns.toArray(new Object[0]));
+        tableModel.setColumnIdentifiers(nonNullColumns.stream().map(SwingTableView::displayColumnName).toArray());
         tableModel.setRowCount(0);
     }
 
@@ -136,5 +149,22 @@ public final class SwingTableView implements TableView {
         public boolean isCellEditable(final int row, final int column) {
             return false;
         }
+    }
+
+    /**
+     * @brief 格式化列名（Format Column Name）；
+     *        Format a canonical column name for display.
+     *
+     * @param columnName 列名（Column name）。
+     * @return 展示列名（Display column name）。
+     */
+    private static String displayColumnName(final String columnName) {
+        final String normalized = Objects.requireNonNull(columnName, "columnName must not be null")
+                .replace('_', ' ')
+                .trim();
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        return normalized.substring(0, 1).toUpperCase(Locale.ROOT) + normalized.substring(1);
     }
 }

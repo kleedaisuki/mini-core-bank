@@ -8,6 +8,7 @@ import com.moesegfault.banking.presentation.gui.mvc.ViewEvent;
 import com.moesegfault.banking.presentation.gui.view.EmptyStateView;
 import com.moesegfault.banking.presentation.gui.view.ErrorDialogView;
 import com.moesegfault.banking.presentation.gui.view.FormView;
+import com.moesegfault.banking.presentation.gui.view.NativeComponentView;
 import com.moesegfault.banking.presentation.gui.view.TableView;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ import java.util.function.Consumer;
  * @brief 账户列表页面视图（List Accounts View），负责筛选表单、列表渲染和行选择事件转发；
  *        List-accounts page view rendering filter form, account rows, and row-selection events.
  */
-public final class ListAccountsView implements GuiView<ListAccountsModel>, ModelChangeListener {
+public final class ListAccountsView implements GuiView<ListAccountsModel>, ModelChangeListener, NativeComponentView {
 
     /**
      * @brief 筛选表单视图端口（Filter Form View Port）;

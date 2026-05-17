@@ -2,7 +2,9 @@ package com.moesegfault.banking.infrastructure.gui.swing.view;
 
 import com.moesegfault.banking.presentation.gui.view.MainMenuView;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import javax.swing.JMenu;
@@ -22,10 +24,10 @@ public final class SwingMainMenuView implements MainMenuView {
     private final JMenuBar menuBar = new JMenuBar();
 
     /**
-     * @brief 主菜单组件（Root Menu）；
-     *        Root menu containing provided items.
+     * @brief 菜单组件映射（Menu Component Map）；
+     *        Menu components keyed by group label.
      */
-    private final JMenu rootMenu = new JMenu("Menu");
+    private final Map<String, JMenu> menus = new LinkedHashMap<>();
 
     /**
      * @brief 菜单项 id 列表（Menu Item Ids）；
@@ -45,7 +47,6 @@ public final class SwingMainMenuView implements MainMenuView {
      *        Construct Swing menu view.
      */
     public SwingMainMenuView() {
-        menuBar.add(rootMenu);
     }
 
     /**
@@ -81,14 +82,55 @@ public final class SwingMainMenuView implements MainMenuView {
      *        Rebuild Swing menu items from current ids.
      */
     private void rebuildMenuItems() {
-        rootMenu.removeAll();
+        menuBar.removeAll();
+        menus.clear();
         for (String itemId : itemIds) {
             final String normalizedItemId = Objects.requireNonNull(itemId, "itemId must not be null");
-            final JMenuItem menuItem = new JMenuItem(normalizedItemId);
+            final MenuItemParts parts = MenuItemParts.from(normalizedItemId);
+            final JMenu menu = menus.computeIfAbsent(parts.groupLabel(), this::createMenu);
+            final JMenuItem menuItem = new JMenuItem(parts.itemLabel());
             menuItem.addActionListener(event -> selectionListener.accept(normalizedItemId));
-            rootMenu.add(menuItem);
+            menu.add(menuItem);
         }
-        rootMenu.revalidate();
-        rootMenu.repaint();
+        menuBar.revalidate();
+        menuBar.repaint();
+    }
+
+    /**
+     * @brief 创建菜单组（Create Menu Group）；
+     *        Create and attach one menu group.
+     *
+     * @param groupLabel 菜单组标签（Menu group label）。
+     * @return 菜单组（Menu group）。
+     */
+    private JMenu createMenu(final String groupLabel) {
+        final JMenu menu = new JMenu(groupLabel);
+        menuBar.add(menu);
+        return menu;
+    }
+
+    /**
+     * @brief 菜单项拆分结果（Menu Item Parts）；
+     *        Parsed menu item group and item labels.
+     *
+     * @param groupLabel 菜单组标签（Menu group label）。
+     * @param itemLabel 菜单项标签（Menu item label）。
+     */
+    private record MenuItemParts(String groupLabel, String itemLabel) {
+
+        /**
+         * @brief 从规范菜单项解析（Parse Canonical Menu Item）；
+         *        Parse a canonical menu item label.
+         *
+         * @param itemId 菜单项 ID（Menu item id）。
+         * @return 拆分结果（Parsed parts）。
+         */
+        private static MenuItemParts from(final String itemId) {
+            final int separator = itemId.indexOf('/');
+            if (separator <= 0 || separator >= itemId.length() - 1) {
+                return new MenuItemParts("Navigate", itemId);
+            }
+            return new MenuItemParts(itemId.substring(0, separator), itemId.substring(separator + 1));
+        }
     }
 }
